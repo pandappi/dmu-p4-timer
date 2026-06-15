@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Dancing Mad Debuff Timer",
+  title: "DMU P4 Timer",
   description: "Mobile debuff timer for Dancing Mad phase 4.",
 };
 
