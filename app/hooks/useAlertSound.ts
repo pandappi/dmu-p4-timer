@@ -41,20 +41,24 @@ export function useAlertSound() {
     }
   }, []);
 
-  const speak = useCallback((text: string, volume = 1, language: Language = "ko") => {
-    const synth = window.speechSynthesis;
-    if (!synth || !text) return;
+  const speak = useCallback(
+    (text: string, volume = 1, language: Language = "ko", enqueue = false) => {
+      const synth = window.speechSynthesis;
+      if (!synth || !text) return;
 
-    // 이전 발화가 큐에 남아 밀리지 않도록 취소 후 재생.
-    synth.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = language === "ko" ? "ko-KR" : "en-US";
-    utterance.voice = pickPreferredVoice(language);
-    utterance.rate = 1.05;
-    utterance.pitch = 0.78;
-    utterance.volume = Math.min(1, Math.max(0, volume));
-    synth.speak(utterance);
-  }, []);
+      // 기본은 이전 발화를 끊고 재생. enqueue=true면 끊지 않고 큐에 이어 붙여
+      // 앞 음성이 끝난 직후 재생된다(예: 우선도 낮은 가속도폭탄 콜).
+      if (!enqueue) synth.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = language === "ko" ? "ko-KR" : "en-US";
+      utterance.voice = pickPreferredVoice(language);
+      utterance.rate = 1.05;
+      utterance.pitch = 0.78;
+      utterance.volume = Math.min(1, Math.max(0, volume));
+      synth.speak(utterance);
+    },
+    [],
+  );
 
   // 사용자 제스처 안에서 호출해 오디오/TTS 재생 권한을 확보한다.
   const unlock = useCallback(async () => {

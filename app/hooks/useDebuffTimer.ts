@@ -198,37 +198,63 @@ export function useDebuffTimer() {
   useEffect(() => {
     if (!state.alertReady) return;
 
-    state.entries.forEach((entry) => {
-      if (!entry.notify || !entry.expiresAt) return;
+    const leadSeconds = Math.min(
+      15,
+      Math.max(0, state.settings.alertLeadSeconds),
+    );
 
-      const leadSeconds = Math.min(
-        15,
-        Math.max(0, state.settings.alertLeadSeconds),
-      );
-      const alertAt = entry.expiresAt - leadSeconds * 1000;
-      const key = `${entry.id}:lead:${leadSeconds}`;
-      const shouldFire = now >= alertAt && now < alertAt + 1000;
+    // 이번 tick에 알림 조건을 만족하는 항목을 모은다.
+    const firing = state.entries
+      .map((entry) => {
+        if (!entry.notify || !entry.expiresAt) return null;
+        const alertAt = entry.expiresAt - leadSeconds * 1000;
+        const key = `${entry.id}:lead:${leadSeconds}`;
+        const shouldFire = now >= alertAt && now < alertAt + 1000;
+        if (!shouldFire || state.firedAlerts[key]) return null;
+        return { entry, key, action: getEntryActionText(entry, state.entries) };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null);
 
-      if (!shouldFire || state.firedAlerts[key]) return;
+    if (firing.length === 0) return;
 
-      const action = getEntryActionText(entry, state.entries);
-      if (state.settings.alertSound === "tts" && action) {
+    // 가속도폭탄은 우선도가 낮다 → 같은 시점에 겹친 알림 중 맨 뒤에 읽는다.
+    const order = [...firing].sort((a, b) => {
+      const aBomb = isAccelerationBomb(a.entry.debuff) ? 1 : 0;
+      const bBomb = isAccelerationBomb(b.entry.debuff) ? 1 : 0;
+      if (aBomb !== bBomb) return aBomb - bBomb;
+      return (a.entry.expiresAt ?? 0) - (b.entry.expiresAt ?? 0);
+    });
+
+    if (state.settings.alertSound === "tts") {
+      let spokenCount = 0;
+      for (const item of order) {
+        if (!item.action) continue;
+        const phrase =
+          actionDisplayText(state.settings.language, item.action) ??
+          item.action;
+        // 첫 음성만 기존 큐를 끊고, 이후(낮은 우선도)는 이어서 재생되도록 큐잉.
         speak(
-          actionDisplayText(state.settings.language, action) ?? action,
+          phrase,
           state.settings.ttsVolume,
           state.settings.language,
+          spokenCount > 0,
         );
+        spokenCount += 1;
       }
-      if (state.settings.vibrationEnabled) vibrate(true);
+    }
+    if (state.settings.vibrationEnabled) vibrate(true);
 
-      setState((current) => ({
-        ...current,
-        firedAlerts: { ...current.firedAlerts, [key]: true },
-        logs: [
-          createLog(`${action ?? entry.debuff}`, current.startedAt),
-          ...current.logs,
-        ].slice(0, 8),
-      }));
+    setState((current) => {
+      const firedAlerts = { ...current.firedAlerts };
+      let logs = current.logs;
+      for (const item of order) {
+        firedAlerts[item.key] = true;
+        logs = [
+          createLog(`${item.action ?? item.entry.debuff}`, current.startedAt),
+          ...logs,
+        ];
+      }
+      return { ...current, firedAlerts, logs: logs.slice(0, 8) };
     });
   }, [
     now,
