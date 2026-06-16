@@ -6,16 +6,16 @@ import type {
   TruthState,
 } from "./types";
 
-export const STORAGE_KEY = "dmu-p4-timer-state-v3";
+export const STORAGE_KEY = "dmu-p4-timer-state-v4";
 
 export const defaultSettings: TimerSettings = {
   alertLeadSeconds: 5,
-  displayMode: "icon-only",
+  assistMode: "personal",
   registrationMode: "instant",
   alertSound: "tts",
-  durationMode: "panel",
+  vibrationEnabled: true,
   theme: "dark",
-  nameLanguage: "ko",
+  aoeLabelMode: "element",
 };
 
 export const roundLabels: Record<Round, string> = {
@@ -27,20 +27,10 @@ export const roundLabels: Record<Round, string> = {
 };
 
 export const debuffsByRound: Record<Exclude<Round, 5>, DebuffName[]> = {
-  1: [
-    "Forked Lightning",
-    "Compressed Water",
-    "Cursed Shriek",
-    "Acceleration Bomb",
-  ],
+  1: ["Forked Lightning", "Compressed Water", "Acceleration Bomb"],
   2: ["Entropy", "Dynamic Fluid"],
-  3: [
-    "Forked Lightning",
-    "Compressed Water",
-    "Cursed Shriek",
-    "Acceleration Bomb",
-  ],
-  4: ["Entropy", "Dynamic Fluid"],
+  3: [],
+  4: [],
 };
 
 export const woundDebuffs = ["Black Wound", "White Wound"] as const;
@@ -114,7 +104,7 @@ export const initialState: TimerState = {
   startedAt: null,
   entries: [],
   selectedRound: 1,
-  alertReady: false,
+  alertReady: true,
   firedAlerts: {},
   logs: [],
   settings: defaultSettings,

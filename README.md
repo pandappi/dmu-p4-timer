@@ -1,6 +1,6 @@
-# Dancing Mad Debuff Timer
+# Dancing Mad Debuff Assist
 
-Mobile-first debuff timer for Dancing Mad phase 4.
+Mobile-first debuff assist for Dancing Mad phase 4.
 
 ## Run
 
@@ -9,7 +9,7 @@ pnpm install
 pnpm dev
 ```
 
-The app starts at `http://localhost:4000` and exposes a single mobile-friendly timer screen.
+The app starts at `http://localhost:4000` and exposes a single mobile-friendly assist screen.
 
 ## Implemented MVP
 
@@ -17,22 +17,20 @@ The app starts at `http://localhost:4000` and exposes a single mobile-friendly t
 - Rule-based duration calculation
 - Truth/Lie selection for every round
 - Round 3 duration inference from round 1
-- Round 3 candidate filtering from round 1 assignment rules
 - Round 4 debuff inference from round 2
 - Round 4 Truth/Lie-only confirmation after automatic inference
 - Countdown display from absolute `expiresAt`
 - Debuff icon selection grid
-- Display mode setting for icon-only or icon-with-name buttons
 - Registration mode setting for confirm-button or instant selection flow
-- Sound and vibration alert test flow in settings
-- Configurable early alert timing, default 4 seconds before expiration
+- TTS sound alert and optional vibration
+- Configurable early alert timing, default 5 seconds before expiration
 - Local reset and localStorage persistence
 - Round 5 pair selection: Black/White Wound + Allagan Field/Beyond Death
 
 ## Alert Permission Flow
 
-Mobile browsers usually block audio until the user performs a direct action.
-Open `설정` and use `알림 테스트` before combat to resume the Web Audio context and trigger a short vibration pattern.
+Some mobile browsers may block TTS until the user performs a direct action.
+The app attempts TTS without a setup step, and `설정` still includes `알림 테스트` for device checks.
 
 The app does not request Notification API permission yet because MVP alerts happen while the page is open.
 
