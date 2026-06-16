@@ -61,6 +61,11 @@ const waveDurations = [
   ASSIGNMENT_DURATIONS.round1SlowWave,
 ];
 
+const round3WaveDurations = [
+  ASSIGNMENT_DURATIONS.round3FastWave,
+  ASSIGNMENT_DURATIONS.round3SlowWave,
+];
+
 function WavePairTile() {
   return (
     <div className="leader-tile" aria-label="물 번개">
@@ -230,17 +235,8 @@ function WorkspaceImpl({
   const round3Debuffs = round1WasBomb
     ? (["Compressed Water", "Forked Lightning"] satisfies DebuffName[])
     : [];
-  const round3Durations = round1WasWaterLightning
-    ? [
-        ASSIGNMENT_DURATIONS.round3FastWave,
-        ASSIGNMENT_DURATIONS.round3SlowWave,
-      ]
-    : round1WasBomb
-      ? [
-          ASSIGNMENT_DURATIONS.round3FastWave,
-          ASSIGNMENT_DURATIONS.round3SlowWave,
-        ]
-      : [];
+  const round3Durations =
+    round1WasWaterLightning || round1WasBomb ? round3WaveDurations : [];
   const raidRound3AutoDuration = isRaidMode
     ? round1Entry?.duration === ASSIGNMENT_DURATIONS.round1FastWave
       ? ASSIGNMENT_DURATIONS.round3SlowWave
@@ -374,7 +370,7 @@ function WorkspaceImpl({
                   ariaLabel={text(language, "round3RaidBombDuration")}
                   language={language}
                   onSelect={onDurationSelect}
-                  options={waveDurations}
+                  options={round3WaveDurations}
                   selected={selectedDuration}
                 />
               </div>
