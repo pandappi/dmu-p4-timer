@@ -15,6 +15,7 @@ export type DebuffName =
 export type TruthState = "truth" | "lie";
 export type EntryKind = "input" | "timeline";
 export type AssistMode = "personal" | "raid";
+export type Language = "ko" | "en";
 
 export type DebuffEntry = {
   id: string;
@@ -39,11 +40,15 @@ export type TimerLog = {
 export type TimerSettings = {
   alertLeadSeconds: number;
   assistMode: AssistMode;
+  language: Language;
   registrationMode: "confirm" | "instant";
   alertSound: "off" | "tts";
+  ttsVolume: number;
   vibrationEnabled: boolean;
   theme: "dark" | "light";
   aoeLabelMode: "element" | "shape";
+  partyChatCopy: boolean;
+  partySoundCopy: boolean;
 };
 
 export type TimerState = {

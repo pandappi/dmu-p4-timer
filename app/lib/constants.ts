@@ -6,16 +6,20 @@ import type {
   TruthState,
 } from "./types";
 
-export const STORAGE_KEY = "dmu-p4-timer-state-v4";
+export const STORAGE_KEY = "dmu-p4-timer-state-v5";
 
 export const defaultSettings: TimerSettings = {
-  alertLeadSeconds: 5,
+  alertLeadSeconds: 7,
   assistMode: "personal",
+  language: "ko",
   registrationMode: "instant",
   alertSound: "tts",
-  vibrationEnabled: true,
+  ttsVolume: 1,
+  vibrationEnabled: false,
   theme: "dark",
   aoeLabelMode: "element",
+  partyChatCopy: false,
+  partySoundCopy: false,
 };
 
 export const roundLabels: Record<Round, string> = {

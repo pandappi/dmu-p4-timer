@@ -2,11 +2,13 @@ import { Volume2, X } from "lucide-react";
 import { memo } from "react";
 
 import { defaultSettings } from "../lib/constants";
-import type { TimerSettings } from "../lib/types";
+import { text } from "../lib/i18n";
+import type { Language, TimerSettings } from "../lib/types";
 import { normalizeNumber } from "../lib/utils";
 
 type SettingsModalProps = {
   settings: TimerSettings;
+  language: Language;
   onClose: () => void;
   onUpdate: (settings: Partial<TimerSettings>) => void;
   onTestAlert: () => void;
@@ -14,164 +16,241 @@ type SettingsModalProps = {
 
 function SettingsModalImpl({
   settings,
+  language,
   onClose,
   onUpdate,
   onTestAlert,
 }: SettingsModalProps) {
+  const modeHelp =
+    settings.assistMode === "personal"
+      ? text(language, "personalModeHelp")
+      : text(language, "partyModeHelp");
+
+  const updateAlertLeadSeconds = (value: string) => {
+    const nextValue = normalizeNumber(
+      Number(value),
+      defaultSettings.alertLeadSeconds,
+    );
+    onUpdate({
+      alertLeadSeconds: Math.min(15, Math.max(0, nextValue)),
+    });
+  };
+  const updateTtsVolume = (value: string) => {
+    const nextValue = normalizeNumber(
+      Number(value),
+      defaultSettings.ttsVolume * 100,
+    );
+    onUpdate({
+      ttsVolume: Math.min(1, Math.max(0, nextValue / 100)),
+    });
+  };
+  const ttsVolumePercent = Math.round(settings.ttsVolume * 100);
+
   return (
     <div className="modal-backdrop" role="presentation">
-      <section aria-label="설정" className="settings-popover" role="dialog">
+      <section
+        aria-label={text(language, "settings")}
+        className="settings-popover"
+        role="dialog"
+      >
         <div className="panel-head">
-          <h2>설정</h2>
+          <h2>{text(language, "settings")}</h2>
           <button className="icon-button" onClick={onClose} type="button">
             <X size={20} aria-hidden="true" />
           </button>
         </div>
         <div className="settings-body">
           <div className="setting-section">
-            <span className="setting-label">사용 모드</span>
-            <div className="segmented two-col" aria-label="사용 모드">
+            <span className="setting-label">{text(language, "useMode")}</span>
+            <div className="segmented two-col" aria-label={text(language, "useMode")}>
               <button
                 className={`segment ${settings.assistMode === "personal" ? "active" : ""}`}
-                onClick={() => onUpdate({ assistMode: "personal" })}
+                onClick={() =>
+                  onUpdate({
+                    assistMode: "personal",
+                    partyChatCopy: false,
+                    partySoundCopy: false,
+                  })
+                }
                 type="button"
               >
-                개인용
+                {text(language, "personalMode")}
               </button>
               <button
                 className={`segment ${settings.assistMode === "raid" ? "active" : ""}`}
                 onClick={() => onUpdate({ assistMode: "raid" })}
                 type="button"
               >
-                리딩용
+                {text(language, "partyMode")}
               </button>
             </div>
-            <p className="setting-help">
-              리딩용은 8인 전체 처리 순서를 기준으로 물/번개 처리와 리딩자 폭탄을 함께 정리합니다.
-            </p>
+            <p className="setting-help">{modeHelp}</p>
           </div>
+          {settings.assistMode === "raid" ? (
+            <div className="setting-section">
+              <span className="setting-label">
+                {text(language, "partyCallCopyOptions")}
+              </span>
+              <div className="inline-check-row">
+                <label className="inline-setting-check">
+                  <input
+                    checked={settings.partyChatCopy}
+                    onChange={(event) =>
+                      onUpdate({ partyChatCopy: event.target.checked })
+                    }
+                    type="checkbox"
+                  />
+                  <span>{text(language, "partyChatCopy")}</span>
+                </label>
+                <label className="inline-setting-check">
+                  <input
+                    checked={settings.partySoundCopy}
+                    onChange={(event) =>
+                      onUpdate({ partySoundCopy: event.target.checked })
+                    }
+                    type="checkbox"
+                  />
+                  <span>{text(language, "addSound")}</span>
+                </label>
+              </div>
+            </div>
+          ) : null}
           <div className="setting-section">
-            <span className="setting-label">등록 방식</span>
-            <div className="segmented two-col" aria-label="디버프 등록 방식">
-              <button
-                className={`segment ${settings.registrationMode === "confirm" ? "active" : ""}`}
-                onClick={() => onUpdate({ registrationMode: "confirm" })}
-                type="button"
-              >
-                등록 버튼
-              </button>
+            <span className="setting-label">{text(language, "registrationMode")}</span>
+            <div
+              className="segmented two-col"
+              aria-label={text(language, "registrationMode")}
+            >
               <button
                 className={`segment ${settings.registrationMode === "instant" ? "active" : ""}`}
                 onClick={() => onUpdate({ registrationMode: "instant" })}
                 type="button"
               >
-                선택 즉시
+                {text(language, "instant")}
+              </button>
+              <button
+                className={`segment ${settings.registrationMode === "confirm" ? "active" : ""}`}
+                onClick={() => onUpdate({ registrationMode: "confirm" })}
+                type="button"
+              >
+                {text(language, "confirmButton")}
               </button>
             </div>
             <p className="setting-help">
-              선택 즉시는 필요한 입력이 모두 정해지는 순간 다음 차수로 넘어갑니다.
+              {text(language, "instantHelp")}
             </p>
           </div>
           <div className="setting-section">
-            <span className="setting-label">테마</span>
-            <div className="segmented two-col" aria-label="테마">
+            <span className="setting-label">{text(language, "theme")}</span>
+            <div className="segmented two-col" aria-label={text(language, "theme")}>
               <button
                 className={`segment ${settings.theme === "dark" ? "active" : ""}`}
                 onClick={() => onUpdate({ theme: "dark" })}
                 type="button"
               >
-                다크
+                {text(language, "dark")}
               </button>
               <button
                 className={`segment ${settings.theme === "light" ? "active" : ""}`}
                 onClick={() => onUpdate({ theme: "light" })}
                 type="button"
               >
-                라이트
+                {text(language, "light")}
               </button>
             </div>
           </div>
           <div className="setting-section">
-            <span className="setting-label">소리 알림</span>
-            <div className="segmented two-col" aria-label="소리 알림 방식">
+            <span className="setting-label">{text(language, "soundAlert")}</span>
+            <div
+              className="segmented two-col"
+              aria-label={text(language, "soundAlert")}
+            >
               <button
                 className={`segment ${settings.alertSound === "tts" ? "active" : ""}`}
                 onClick={() => onUpdate({ alertSound: "tts" })}
                 type="button"
               >
-                TTS
+                {text(language, "tts")}
               </button>
               <button
                 className={`segment ${settings.alertSound === "off" ? "active" : ""}`}
                 onClick={() => onUpdate({ alertSound: "off" })}
                 type="button"
               >
-                끄기
+                {text(language, "off")}
               </button>
             </div>
             <p className="setting-help">
-              TTS는 처리 시점에 처리법(예: &ldquo;산개&rdquo;)을 읽어줍니다.
-              기기/브라우저에 따라 한국어 음성이 없으면 기본 음성으로 재생됩니다.
+              {text(language, "soundHelp")}
             </p>
           </div>
+          <label className="setting-section">
+            <span className="setting-label">
+              {text(language, "ttsVolume")} {ttsVolumePercent}%
+            </span>
+            <input
+              className="range-field"
+              disabled={settings.alertSound === "off"}
+              max={100}
+              min={0}
+              onChange={(event) => updateTtsVolume(event.target.value)}
+              step={5}
+              type="range"
+              value={ttsVolumePercent}
+            />
+          </label>
           <div className="setting-section">
-            <span className="setting-label">진동</span>
-            <div className="segmented two-col" aria-label="진동 설정">
-              <button
-                className={`segment ${settings.vibrationEnabled ? "active" : ""}`}
-                onClick={() => onUpdate({ vibrationEnabled: true })}
-                type="button"
-              >
-                켜기
-              </button>
+            <span className="setting-label">{text(language, "vibration")}</span>
+            <div
+              className="segmented two-col"
+              aria-label={text(language, "vibration")}
+            >
               <button
                 className={`segment ${!settings.vibrationEnabled ? "active" : ""}`}
                 onClick={() => onUpdate({ vibrationEnabled: false })}
                 type="button"
               >
-                끄기
+                {text(language, "off")}
+              </button>
+              <button
+                className={`segment ${settings.vibrationEnabled ? "active" : ""}`}
+                onClick={() => onUpdate({ vibrationEnabled: true })}
+                type="button"
+              >
+                {text(language, "on")}
               </button>
             </div>
           </div>
           <div className="setting-section">
-            <span className="setting-label">장판 표기</span>
-            <div className="segmented two-col" aria-label="장판 표기">
+            <span className="setting-label">{text(language, "aoeLabel")}</span>
+            <div
+              className="segmented two-col"
+              aria-label={text(language, "aoeLabel")}
+            >
               <button
                 className={`segment ${settings.aoeLabelMode === "element" ? "active" : ""}`}
                 onClick={() => onUpdate({ aoeLabelMode: "element" })}
                 type="button"
               >
-                번개/얼음
+                {text(language, "elementLabels")}
               </button>
               <button
                 className={`segment ${settings.aoeLabelMode === "shape" ? "active" : ""}`}
                 onClick={() => onUpdate({ aoeLabelMode: "shape" })}
                 type="button"
               >
-                직선/부채꼴
+                {text(language, "shapeLabels")}
               </button>
             </div>
           </div>
           <label className="number-field">
-            <span>몇 초 전에 알림</span>
-            <small>
-              디버프 확인 후 아이콘을 누르기까지 걸리는 시간을 포함해, 만료보다 몇 초
-              빨리 소리낼지
-            </small>
+            <span>{text(language, "inputAlertBuffer")}</span>
+            <small>{text(language, "inputAlertHelp")}</small>
             <input
               inputMode="numeric"
+              max={15}
               min={0}
-              onChange={(event) =>
-                onUpdate({
-                  alertLeadSeconds: Math.max(
-                    0,
-                    normalizeNumber(
-                      Number(event.target.value),
-                      defaultSettings.alertLeadSeconds,
-                    ),
-                  ),
-                })
-              }
+              onChange={(event) => updateAlertLeadSeconds(event.target.value)}
               type="number"
               value={settings.alertLeadSeconds}
             />
@@ -185,8 +264,15 @@ function SettingsModalImpl({
             type="button"
           >
             <Volume2 size={18} aria-hidden="true" />
-            알림 테스트
+            {text(language, "testAlert")}
           </button>
+          <p className="setting-help alert-test-help">
+            {text(language, "alertTestHelp")}
+          </p>
+          <p className="settings-contact">
+            <span>{text(language, "contact")}</span>
+            <a href="mailto:pandappi123@gmail.com">pandappi123@gmail.com</a>
+          </p>
         </div>
       </section>
     </div>

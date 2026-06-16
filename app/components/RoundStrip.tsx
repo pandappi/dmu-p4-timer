@@ -1,19 +1,21 @@
 import { memo } from "react";
 
-import { roundLabels } from "../lib/constants";
-import type { DebuffEntry, Round } from "../lib/types";
+import { roundLabel } from "../lib/i18n";
+import type { DebuffEntry, Language, Round } from "../lib/types";
 
 const ROUNDS: Round[] = [1, 2, 3, 4, 5];
 
 type RoundStripProps = {
   selectedRound: Round;
   entriesByRound: Record<Round, DebuffEntry[]>;
+  language: Language;
   onSelectRound: (round: Round) => void;
 };
 
 function RoundStripImpl({
   selectedRound,
   entriesByRound,
+  language,
   onSelectRound,
 }: RoundStripProps) {
   const isRoundComplete = (round: Round) =>
@@ -53,7 +55,7 @@ function RoundStripImpl({
             onClick={() => onSelectRound(round)}
             type="button"
           >
-            {roundLabels[round]}
+            {roundLabel(language, round)}
           </button>
         );
       })}

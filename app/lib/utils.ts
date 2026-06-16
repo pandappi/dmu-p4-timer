@@ -1,4 +1,4 @@
-import type { TimerLog } from "./types";
+import type { Language, TimerLog } from "./types";
 
 export function formatClock(totalSeconds: number) {
   const safeSeconds = Math.max(0, Math.ceil(totalSeconds));
@@ -27,8 +27,9 @@ export function normalizeNumber(value: number, fallback: number) {
 
 // 지속시간 라벨. 60초를 넘으면 인게임 표기에 맞춰 분 단위를 괄호로 병기한다.
 // 인게임은 1분 초과 시 "1m"으로만 표시하므로 초 단위는 생략한다. 예: 76 → "76초 (1m)".
-export function formatDurationLabel(seconds: number) {
-  if (seconds <= 60) return `${seconds}초`;
+export function formatDurationLabel(seconds: number, language: Language = "ko") {
+  const unit = language === "ko" ? "초" : "s";
+  if (seconds <= 60) return `${seconds}${unit}`;
   const minutes = Math.floor(seconds / 60);
-  return `${seconds}초 (${minutes}m)`;
+  return `${seconds}${unit} (${minutes}m)`;
 }
