@@ -1,27 +1,34 @@
 import { memo } from "react";
 
-import { debuffLabel } from "../lib/actions";
-import { debuffMeta, roundLabels, truthLabels } from "../lib/constants";
-import type { DebuffEntry } from "../lib/types";
+import {
+  actionDisplayText,
+  debuffDisplayName,
+  roundLabel,
+  text,
+  truthLabel,
+} from "../lib/i18n";
+import { debuffMeta } from "../lib/constants";
+import type { DebuffEntry, Language } from "../lib/types";
 import { formatClock, formatDurationLabel } from "../lib/utils";
 
 type EntryListProps = {
   entries: DebuffEntry[];
+  language: Language;
   now: number;
 };
 
-function EntryListImpl({ entries, now }: EntryListProps) {
+function EntryListImpl({ entries, language, now }: EntryListProps) {
   const inputEntries = entries.filter((entry) => entry.kind === "input");
 
   return (
     <section className="panel compact-list">
       <div className="panel-head">
-        <h3>입력됨</h3>
+        <h3>{text(language, "inputDone")}</h3>
         <span>{inputEntries.length}</span>
       </div>
       <div className="panel-body entry-list">
         {inputEntries.length === 0 ? (
-          <p className="hint">아직 입력된 조건이 없습니다.</p>
+          <p className="hint">{text(language, "noInput")}</p>
         ) : (
           inputEntries.map((entry) => {
             const remaining = entry.expiresAt
@@ -36,13 +43,15 @@ function EntryListImpl({ entries, now }: EntryListProps) {
                 />
                 <div>
                   <strong>
-                    {entry.actionText ?? debuffLabel(entry.debuff, "ko")}
+                    {actionDisplayText(language, entry.actionText) ??
+                      debuffDisplayName(language, entry.debuff)}
                   </strong>
                   <small>
                     {[
-                      roundLabels[entry.round],
-                      entry.round === 5 ? null : truthLabels[entry.truthState],
-                      entry.source === "auto" ? "자동" : "수동",
+                      roundLabel(language, entry.round),
+                      entry.round === 5
+                        ? null
+                        : truthLabel(language, entry.truthState),
                     ]
                       .filter(Boolean)
                       .join(" · ")}
@@ -52,8 +61,8 @@ function EntryListImpl({ entries, now }: EntryListProps) {
                   {remaining !== null
                     ? formatClock(remaining)
                     : entry.duration !== null
-                      ? formatDurationLabel(entry.duration)
-                      : "기록"}
+                      ? formatDurationLabel(entry.duration, language)
+                      : text(language, "recorded")}
                 </div>
               </div>
             );

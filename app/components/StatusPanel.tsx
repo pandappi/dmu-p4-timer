@@ -1,14 +1,14 @@
 import { BellRing } from "lucide-react";
 import { memo } from "react";
 
-import { debuffLabel } from "../lib/actions";
-import { roundLabels } from "../lib/constants";
-import type { DebuffEntry, TimerSettings } from "../lib/types";
+import { actionDisplayText, debuffDisplayName, roundLabel } from "../lib/i18n";
+import type { DebuffEntry, Language, TimerSettings } from "../lib/types";
 import { formatClock } from "../lib/utils";
 
 type StatusPanelProps = {
   nextEntry: DebuffEntry | undefined;
   nextAction: string | null;
+  language?: Language;
   now: number;
   alertReady: boolean;
   alertLeadSeconds: number;
@@ -18,6 +18,7 @@ type StatusPanelProps = {
 function StatusPanelImpl({
   nextEntry,
   nextAction,
+  language = "ko",
   now,
   alertReady,
   alertLeadSeconds,
@@ -26,10 +27,12 @@ function StatusPanelImpl({
   return (
     <section className="panel status-panel">
       <div className="next-debuff">
-        <span>다음 처리</span>
+        <span>{language === "ko" ? "다음 처리" : "Next"}</span>
         {nextEntry ? (
           <>
-            <strong className="next-action">{nextAction ?? "—"}</strong>
+            <strong className="next-action">
+              {actionDisplayText(language, nextAction) ?? "—"}
+            </strong>
             <span className="next-meta">
               {formatClock(
                 ((nextEntry.expiresAt ?? now) -
@@ -37,24 +40,30 @@ function StatusPanelImpl({
                   now) /
                   1000,
               )}{" "}
-              · {roundLabels[nextEntry.round]}{" "}
-              {debuffLabel(nextEntry.debuff, "ko")}
+              · {roundLabel(language, nextEntry.round)}{" "}
+              {debuffDisplayName(language, nextEntry.debuff)}
             </span>
           </>
         ) : (
           <>
             <strong>--:--</strong>
-            <span>등록된 알림 없음</span>
+            <span>{language === "ko" ? "등록된 알림 없음" : "No alerts"}</span>
           </>
         )}
       </div>
       <div className={alertReady ? "alert-ready ready" : "alert-ready"}>
         <BellRing size={16} aria-hidden="true" />
         {alertSound === "off"
-          ? "소리 끔"
+          ? language === "ko"
+            ? "소리 끔"
+            : "Sound off"
           : alertReady
-            ? `${alertLeadSeconds}초 전 알림`
-            : "TTS 준비 중"}
+            ? language === "ko"
+              ? `${alertLeadSeconds}초 전 알림`
+              : `${alertLeadSeconds}s early`
+            : language === "ko"
+              ? "TTS 준비 중"
+              : "TTS pending"}
       </div>
     </section>
   );

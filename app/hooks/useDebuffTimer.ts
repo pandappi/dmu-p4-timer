@@ -9,9 +9,8 @@ import {
   type WoundDebuff,
   woundDebuffs,
   initialState,
-  roundLabels,
-  truthLabels,
 } from "../lib/constants";
+import { actionDisplayText, roundLabel, truthLabel } from "../lib/i18n";
 import {
   getDuration,
   getNextRound,
@@ -24,7 +23,6 @@ import {
   getFinalActionText,
   getWavePairActionText,
   getWaveTimelineSeconds,
-  getWaveTimingLabel,
   isAccelerationBomb,
   isWaterLightning,
   TIMELINE_SECONDS,
@@ -75,7 +73,11 @@ export function useDebuffTimer() {
   const enableAlerts = useCallback(async () => {
     await unlock();
     if (state.settings.alertSound === "tts") {
-      speak("테스트");
+      speak(
+        state.settings.language === "ko" ? "테스트" : "Test",
+        state.settings.ttsVolume,
+        state.settings.language,
+      );
     }
     if (state.settings.vibrationEnabled) vibrate(false);
     setState((current) => ({ ...current, alertReady: true }));
@@ -84,6 +86,8 @@ export function useDebuffTimer() {
     addLog,
     speak,
     state.settings.alertSound,
+    state.settings.language,
+    state.settings.ttsVolume,
     state.settings.vibrationEnabled,
     unlock,
     vibrate,
@@ -197,7 +201,10 @@ export function useDebuffTimer() {
     state.entries.forEach((entry) => {
       if (!entry.notify || !entry.expiresAt) return;
 
-      const leadSeconds = Math.max(0, state.settings.alertLeadSeconds);
+      const leadSeconds = Math.min(
+        15,
+        Math.max(0, state.settings.alertLeadSeconds),
+      );
       const alertAt = entry.expiresAt - leadSeconds * 1000;
       const key = `${entry.id}:lead:${leadSeconds}`;
       const shouldFire = now >= alertAt && now < alertAt + 1000;
@@ -206,7 +213,11 @@ export function useDebuffTimer() {
 
       const action = getEntryActionText(entry, state.entries);
       if (state.settings.alertSound === "tts" && action) {
-        speak(action);
+        speak(
+          actionDisplayText(state.settings.language, action) ?? action,
+          state.settings.ttsVolume,
+          state.settings.language,
+        );
       }
       if (state.settings.vibrationEnabled) vibrate(true);
 
@@ -228,6 +239,8 @@ export function useDebuffTimer() {
     state.firedAlerts,
     state.settings.alertLeadSeconds,
     state.settings.alertSound,
+    state.settings.language,
+    state.settings.ttsVolume,
     state.settings.vibrationEnabled,
   ]);
 
@@ -614,6 +627,7 @@ export function useDebuffTimer() {
 
         setState((current) => {
           const startedAt = Date.now();
+          const language = current.settings.language;
           const inputEntries = [
             ...current.entries.filter(
               (entry) => entry.kind === "input" && entry.round !== 5,
@@ -634,7 +648,9 @@ export function useDebuffTimer() {
             entries: [...inputEntries, ...timelineEntries],
             logs: [
               createLog(
-                `5차 ${wound} + ${finalDebuff} 기준 Assist 시작`,
+                language === "ko"
+                  ? `5차 ${wound} + ${finalDebuff} 기준 Assist 시작`
+                  : `Assist started from Round 5 ${wound} + ${finalDebuff}`,
                 startedAt,
               ),
               ...current.logs,
@@ -676,6 +692,7 @@ export function useDebuffTimer() {
         }
 
         setState((current) => {
+          const language = current.settings.language;
           const inputEntries = current.entries.filter(
             (entry) =>
               entry.kind === "input" && entry.round < current.selectedRound,
@@ -690,7 +707,9 @@ export function useDebuffTimer() {
             selectedRound: getNextRound(current.selectedRound),
             logs: [
               createLog(
-                `${roundLabels[1]} ${truthLabels[truthState]} 리딩 입력`,
+                language === "ko"
+                  ? `${roundLabel(language, 1)} ${truthLabel(language, truthState)} 리딩 입력`
+                  : `${roundLabel(language, 1)} ${truthLabel(language, truthState)} party input`,
                 current.startedAt,
               ),
               ...current.logs,
@@ -737,6 +756,7 @@ export function useDebuffTimer() {
         }
 
         setState((current) => {
+          const language = current.settings.language;
           const inputEntries = current.entries.filter(
             (entry) =>
               entry.kind === "input" && entry.round < current.selectedRound,
@@ -751,7 +771,9 @@ export function useDebuffTimer() {
             selectedRound: getNextRound(current.selectedRound),
             logs: [
               createLog(
-                `${roundLabels[3]} ${truthLabels[truthState]} 리딩 입력`,
+                language === "ko"
+                  ? `${roundLabel(language, 3)} ${truthLabel(language, truthState)} 리딩 입력`
+                  : `${roundLabel(language, 3)} ${truthLabel(language, truthState)} party input`,
                 current.startedAt,
               ),
               ...current.logs,
@@ -802,6 +824,7 @@ export function useDebuffTimer() {
       });
 
       setState((current) => {
+        const language = current.settings.language;
         const inputEntries = current.entries.filter(
           (entry) =>
             entry.kind === "input" && entry.round < current.selectedRound,
@@ -816,7 +839,9 @@ export function useDebuffTimer() {
           selectedRound: getNextRound(current.selectedRound),
           logs: [
             createLog(
-              `${roundLabels[newEntry.round]} ${truthLabels[truthState]} ${actionText ?? newEntry.debuff} 입력`,
+              language === "ko"
+                ? `${roundLabel(language, newEntry.round)} ${truthLabel(language, truthState)} ${actionText ?? newEntry.debuff} 입력`
+                : `${roundLabel(language, newEntry.round)} ${truthLabel(language, truthState)} ${actionDisplayText(language, actionText) ?? newEntry.debuff} input`,
               current.startedAt,
             ),
             ...current.logs,
@@ -846,6 +871,7 @@ export function useDebuffTimer() {
       selectedWound,
       state.selectedRound,
       state.settings.assistMode,
+      state.settings.language,
       suggestedRound4,
     ],
   );

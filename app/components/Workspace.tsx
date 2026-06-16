@@ -2,22 +2,28 @@ import { Check } from "lucide-react";
 import { memo } from "react";
 
 import {
+  debuffMeta,
   finalDebuffs,
-  roundLabels,
   woundDebuffs,
 } from "../lib/constants";
 import {
   ASSIGNMENT_DURATIONS,
-  debuffLabel,
-  getWaveTimingLabel,
   isAccelerationBomb,
   isWaterLightning,
 } from "../lib/actions";
+import {
+  debuffDisplayName,
+  roundLabel,
+  text,
+  truthLabel,
+  waveTimingLabel,
+} from "../lib/i18n";
 import { inferRound4 } from "../lib/rules";
 import type {
   AssistMode,
   DebuffEntry,
   DebuffName,
+  Language,
   Round,
   TimerSettings,
   TruthState,
@@ -28,6 +34,7 @@ import { DebuffButton } from "./DebuffButton";
 type WorkspaceProps = {
   selectedRound: Round;
   assistMode: AssistMode;
+  language: Language;
   registrationMode: TimerSettings["registrationMode"];
   suggestedRound4: ReturnType<typeof inferRound4>;
   round1Entry: DebuffEntry | undefined;
@@ -71,13 +78,104 @@ function BombTile() {
   );
 }
 
+function AutoDebuffTile({
+  debuff,
+  language,
+}: {
+  debuff: DebuffName;
+  language: Language;
+}) {
+  const meta = debuffMeta[debuff];
+
+  return (
+    <div
+      aria-label={`${debuffDisplayName(language, debuff)} ${text(language, "auto")}`}
+      className="choice icon-only selected auto-choice"
+      style={{ color: meta.color }}
+    >
+      <img alt="" className="debuff-icon" src={meta.icon} />
+    </div>
+  );
+}
+
+function DisabledDuration({
+  duration,
+  language,
+}: {
+  duration: number | null | undefined;
+  language: Language;
+}) {
+  if (!duration) return null;
+  const timingLabel = waveTimingLabel(language, duration);
+
+  return (
+    <div
+      className="segment time-choice auto-segment active"
+      aria-label={text(language, "round4AutoDuration")}
+    >
+      <strong>{formatDurationLabel(duration, language)}</strong>
+      <small>{timingLabel === "미정" || timingLabel === "TBD" ? text(language, "auto") : timingLabel}</small>
+    </div>
+  );
+}
+
+function AutoDebuffRow({
+  debuff,
+  duration,
+  language,
+  message,
+}: {
+  debuff: DebuffName;
+  duration?: number | null;
+  language: Language;
+  message: string;
+}) {
+  return (
+    <>
+      <div className="auto-debuff-row">
+        <AutoDebuffTile debuff={debuff} language={language} />
+        <div className="auto-box compact">
+          <p>{message}</p>
+        </div>
+      </div>
+      {duration ? (
+        <DisabledDuration duration={duration} language={language} />
+      ) : null}
+    </>
+  );
+}
+
+function AutoWaveRow({
+  duration,
+  language,
+  message,
+}: {
+  duration: number | null;
+  language: Language;
+  message: string;
+}) {
+  return (
+    <>
+      <div className="leader-row auto-row">
+        <WavePairTile />
+        <DisabledDuration duration={duration} language={language} />
+      </div>
+      <div className="auto-box compact">
+        <p>{message}</p>
+      </div>
+    </>
+  );
+}
+
 function DurationButtons({
   ariaLabel,
+  language,
   options,
   selected,
   onSelect,
 }: {
   ariaLabel: string;
+  language: Language;
   options: number[];
   selected: number | null;
   onSelect: (duration: number) => void;
@@ -91,8 +189,8 @@ function DurationButtons({
           onClick={() => onSelect(duration)}
           type="button"
         >
-          <strong>{formatDurationLabel(duration)}</strong>
-          <small>{getWaveTimingLabel(duration)}</small>
+          <strong>{formatDurationLabel(duration, language)}</strong>
+          <small>{waveTimingLabel(language, duration)}</small>
         </button>
       ))}
     </div>
@@ -102,6 +200,7 @@ function DurationButtons({
 function WorkspaceImpl({
   selectedRound,
   assistMode,
+  language,
   registrationMode,
   suggestedRound4,
   round1Entry,
@@ -142,28 +241,49 @@ function WorkspaceImpl({
           ASSIGNMENT_DURATIONS.round3SlowWave,
         ]
       : [];
+  const raidRound3AutoDuration = isRaidMode
+    ? round1Entry?.duration === ASSIGNMENT_DURATIONS.round1FastWave
+      ? ASSIGNMENT_DURATIONS.round3SlowWave
+      : round1Entry?.duration === ASSIGNMENT_DURATIONS.round1SlowWave
+        ? ASSIGNMENT_DURATIONS.round3FastWave
+        : null
+    : null;
+  const round4AutoMessage =
+    suggestedRound4 && language === "ko"
+      ? `4차는 2차에 따라 ${debuffDisplayName(
+          language,
+          suggestedRound4.debuff,
+        )} 처리로 자동 결정됩니다.`
+      : suggestedRound4
+        ? `Round 4 is auto-decided from Round 2 as ${debuffDisplayName(
+            language,
+            suggestedRound4.debuff,
+          )}.`
+        : "";
 
   return (
     <section className="panel workspace" id="workspace-panel">
       <div className="panel-head">
-        <h2>{roundLabels[selectedRound]} 디버프</h2>
+        <h2>
+          {roundLabel(language, selectedRound)} {text(language, "debuff")}
+        </h2>
       </div>
       <div className="panel-body selector">
         {showTruthToggle ? (
-          <div className="truth-toggle" aria-label="진실 거짓 선택">
+          <div className="truth-toggle" aria-label={text(language, "truthChoice")}>
             <button
               className={`truth-button truth ${selectedTruth === "truth" ? "active" : ""}`}
               onClick={() => onTruthSelect("truth")}
               type="button"
             >
-              진실
+              {truthLabel(language, "truth")}
             </button>
             <button
               className={`truth-button lie ${selectedTruth === "lie" ? "active" : ""}`}
               onClick={() => onTruthSelect("lie")}
               type="button"
             >
-              거짓
+              {truthLabel(language, "lie")}
             </button>
           </div>
         ) : null}
@@ -173,7 +293,8 @@ function WorkspaceImpl({
             <div className="leader-row">
               <WavePairTile />
               <DurationButtons
-                ariaLabel="물 번개 부여 당시 지속시간 선택"
+                ariaLabel={text(language, "round1WaveDuration")}
+                language={language}
                 onSelect={onDurationSelect}
                 options={waveDurations}
                 selected={selectedDuration}
@@ -183,7 +304,7 @@ function WorkspaceImpl({
               <BombTile />
               <div
                 className="segmented three-col duration-panel"
-                aria-label="리딩자 가속도폭탄 선택"
+                aria-label={text(language, "raidBombChoice")}
               >
                 {waveDurations.map((duration) => (
                   <button
@@ -192,8 +313,8 @@ function WorkspaceImpl({
                     onClick={() => onBombDurationSelect(duration)}
                     type="button"
                   >
-                    <strong>{formatDurationLabel(duration)}</strong>
-                    <small>{getWaveTimingLabel(duration)}</small>
+                    <strong>{formatDurationLabel(duration, language)}</strong>
+                    <small>{waveTimingLabel(language, duration)}</small>
                   </button>
                 ))}
                 <button
@@ -201,8 +322,8 @@ function WorkspaceImpl({
                   onClick={() => onBombDurationSelect("none")}
                   type="button"
                 >
-                  <strong>없음</strong>
-                  <small>미대상</small>
+                  <strong>{text(language, "none")}</strong>
+                  <small>{text(language, "notTarget")}</small>
                 </button>
               </div>
             </div>
@@ -221,7 +342,7 @@ function WorkspaceImpl({
             </div>
             <div
               className="segmented two-col duration-panel"
-              aria-label="부여 당시 지속시간 선택"
+              aria-label={text(language, "assignmentDuration")}
             >
               {waveDurations.map((duration) => (
                 <button
@@ -230,25 +351,28 @@ function WorkspaceImpl({
                   onClick={() => onDurationSelect(duration)}
                   type="button"
                 >
-                  <strong>{formatDurationLabel(duration)}</strong>
-                  <small>{getWaveTimingLabel(duration)}</small>
+                  <strong>{formatDurationLabel(duration, language)}</strong>
+                  <small>{waveTimingLabel(language, duration)}</small>
                 </button>
               ))}
             </div>
             <div className="auto-box">
-              <p>마안 대상자는 공통 처리입니다. 징 여부만 확인하세요.</p>
+              <p>{text(language, "eyeCommon")}</p>
             </div>
           </>
         ) : isRaidMode && selectedRound === 3 ? (
           <>
-            <div className="auto-box">
-              <p>물/번개 시간은 1차 입력 시간으로 자동 결정됩니다.</p>
-            </div>
+            <AutoWaveRow
+              duration={raidRound3AutoDuration}
+              language={language}
+              message={text(language, "round3WaveAuto")}
+            />
             {!raidRound1HasBomb ? (
               <div className="leader-row">
                 <BombTile />
                 <DurationButtons
-                  ariaLabel="3차 리딩자 가속도폭탄 지속시간 선택"
+                  ariaLabel={text(language, "round3RaidBombDuration")}
+                  language={language}
                   onSelect={onDurationSelect}
                   options={waveDurations}
                   selected={selectedDuration}
@@ -270,17 +394,19 @@ function WorkspaceImpl({
                 ))}
               </div>
             ) : round1WasWaterLightning ? (
-              <div className="auto-box">
-                <p>1차 물/번개 대상자는 3차 가속도폭탄 대상자입니다.</p>
-              </div>
+              <AutoDebuffRow
+                debuff="Acceleration Bomb"
+                language={language}
+                message={text(language, "round3BombAuto")}
+              />
             ) : (
               <div className="auto-box">
-                <p>1차 입력을 먼저 완료하면 3차 입력 방식이 결정됩니다.</p>
+                <p>{text(language, "round3NeedRound1")}</p>
               </div>
             )}
             <div
               className="segmented two-col duration-panel"
-              aria-label="3차 부여 당시 지속시간 선택"
+              aria-label={text(language, "round3AssignmentDuration")}
             >
               {round3Durations.map((duration) => (
                 <button
@@ -290,27 +416,28 @@ function WorkspaceImpl({
                   onClick={() => onDurationSelect(duration)}
                   type="button"
                 >
-                  <strong>{formatDurationLabel(duration)}</strong>
-                  <small>{getWaveTimingLabel(duration)}</small>
+                  <strong>{formatDurationLabel(duration, language)}</strong>
+                  <small>{waveTimingLabel(language, duration)}</small>
                 </button>
               ))}
             </div>
             <div className="auto-box">
-              <p>마안 대상자는 공통 처리입니다. 징 여부만 확인하세요.</p>
+              <p>{text(language, "eyeCommon")}</p>
             </div>
           </>
         ) : showAutoRound4 && suggestedRound4 ? (
-          <div className="auto-box">
-            <p>
-              4차는 2차에 따라{" "}
-              {debuffLabel(suggestedRound4.debuff, "ko")}{" "}
-              처리로 자동 결정됩니다.
-            </p>
-          </div>
+          <AutoDebuffRow
+            debuff={suggestedRound4.debuff}
+            language={language}
+            message={round4AutoMessage}
+          />
         ) : null}
 
         {selectedRound === 5 ? (
           <>
+            <div className="auto-box compact">
+              <p>{text(language, "round5Same")}</p>
+            </div>
             <div className="button-grid">
               {woundDebuffs.map((debuff) => (
                 <DebuffButton
@@ -345,13 +472,7 @@ function WorkspaceImpl({
           </div>
         ) : null}
 
-        {selectedRound === 5 && !canRegister ? (
-          <p className="hint">1~4차 입력을 마치면 Assist를 시작할 수 있습니다.</p>
-        ) : null}
-
-        {selectedRound === 5 ? (
-          <p className="hint">상처와 최종 디버프가 모두 선택되면 바로 시작됩니다.</p>
-        ) : registrationMode === "confirm" ? (
+        {selectedRound === 5 ? null : registrationMode === "confirm" ? (
           <button
             className="primary register-button"
             disabled={!canRegister}
@@ -359,10 +480,10 @@ function WorkspaceImpl({
             type="button"
           >
             <Check size={18} aria-hidden="true" />
-            등록
+            {text(language, "register")}
           </button>
         ) : (
-          <p className="hint">선택이 완료되면 다음 차수로 넘어갑니다.</p>
+          <p className="hint">{text(language, "completeHint")}</p>
         )}
       </div>
     </section>
