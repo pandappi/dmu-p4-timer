@@ -100,7 +100,7 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 8px 14px;
+  padding: 6px 12px;
   border-bottom: 1px solid var(--hairline);
   background: var(--chrome);
   backdrop-filter: blur(12px);
@@ -115,26 +115,34 @@ button {
 
 .brand h1 {
   margin: 0;
-  font-size: 17px;
+  font-size: 15px;
   line-height: 1.15;
 }
 
 .brand p {
   margin: 2px 0 0;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .icon-tile {
-  width: 32px;
-  height: 32px;
-  flex: 0 0 32px;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
   display: grid;
   place-items: center;
   border: 1px solid var(--hairline);
   border-radius: 8px;
   background: var(--surface-strong);
   color: var(--ok);
+  overflow: hidden;
+}
+
+.brand-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 7px;
 }
 
 .elapsed {
@@ -231,16 +239,16 @@ button {
 
 .timeline-list {
   display: grid;
-  gap: 8px;
+  gap: 4px;
 }
 
 .timeline-item {
   display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 12px;
+  grid-template-columns: 44px 1fr;
+  gap: 6px;
   align-items: center;
-  min-height: 64px;
-  padding: 10px 14px;
+  min-height: 34px;
+  padding: 5px 8px;
   border: 1px solid var(--hairline);
   border-left: 3px solid var(--line);
   border-radius: 8px;
@@ -258,8 +266,8 @@ button {
 }
 
 .timeline-time {
-  min-width: 56px;
-  font-size: 20px;
+  min-width: 0;
+  font-size: 14px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   color: var(--muted);
@@ -271,20 +279,38 @@ button {
 }
 
 .timeline-copy {
-  display: grid;
-  gap: 2px;
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
   min-width: 0;
+  overflow: hidden;
 }
 
 .timeline-action {
-  font-size: 24px;
+  flex: 0 1 auto;
+  min-width: 0;
+  font-size: 15px;
   font-weight: 850;
   line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.timeline-copy small {
+.timeline-meta {
+  flex: 0 0 auto;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.timeline-meta.truth {
+  color: #60a5fa;
+}
+
+.timeline-meta.lie {
+  color: #f87171;
 }
 
 .alert-ready {
@@ -329,6 +355,14 @@ button {
   border-color: rgba(245, 158, 11, 0.45);
 }
 
+.round-tab.locked {
+  opacity: 0.38;
+}
+
+.round-tab:disabled {
+  cursor: not-allowed;
+}
+
 /* 차수 전환·5차 완료 시 스크롤 포커스가 sticky 헤더에 가리지 않도록 여백 확보 */
 .workspace,
 .timeline-panel {
@@ -357,27 +391,35 @@ button {
 }
 
 .truth-button.truth {
-  color: #93c5fd;
+  color: #60a5fa;
 }
 
 .truth-button.lie {
-  color: #fca5a5;
+  color: #f87171;
 }
 
 .truth-button.truth.active {
-  border-color: #60a5fa;
-  background: rgba(37, 99, 235, 0.24);
+  border-color: #3b82f6;
+  color: #dbeafe;
+  background: rgba(37, 99, 235, 0.36);
+  box-shadow: inset 0 0 0 1px rgba(147, 197, 253, 0.28);
 }
 
 .truth-button.lie.active {
   border-color: #ef4444;
-  background: rgba(239, 68, 68, 0.2);
+  color: #fee2e2;
+  background: rgba(220, 38, 38, 0.34);
+  box-shadow: inset 0 0 0 1px rgba(252, 165, 165, 0.28);
 }
 
 .button-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+}
+
+.button-grid.three-col {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .choice {
@@ -438,6 +480,15 @@ button {
   height: 92px;
 }
 
+.button-grid.three-col .choice.icon-only {
+  min-height: 118px;
+}
+
+.button-grid.three-col .choice.icon-only .debuff-icon {
+  width: 74px;
+  height: 74px;
+}
+
 .choice.icon-only svg {
   position: absolute;
   top: 10px;
@@ -459,6 +510,10 @@ button {
 
 .segmented.two-col {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.segmented.three-col {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .segmented.stack {
@@ -584,6 +639,60 @@ button {
   background: rgba(45, 212, 191, 0.16);
 }
 
+.time-choice {
+  display: grid;
+  place-items: center;
+  gap: 1px;
+}
+
+.time-choice small {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.segmented.three-col .time-choice strong {
+  font-size: 14px;
+}
+
+.segmented.three-col .time-choice small {
+  font-size: 12px;
+}
+
+.leader-row {
+  display: grid;
+  grid-template-columns: 86px 1fr;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.leader-tile {
+  min-height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+}
+
+.leader-tile img {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+}
+
+.leader-tile img + img {
+  margin-left: -8px;
+}
+
+.leader-tile.single img {
+  width: 54px;
+  height: 54px;
+  margin-left: 0;
+}
+
 .actions {
   display: grid;
   grid-template-columns: 1fr;
@@ -668,6 +777,84 @@ button {
 
 .entry-time.off {
   color: var(--muted);
+}
+
+.aoe-panel .panel-head {
+  padding: 10px 12px;
+}
+
+.aoe-panel .panel-head strong {
+  color: var(--ok);
+  font-size: 18px;
+  font-weight: 850;
+}
+
+.aoe-body {
+  display: grid;
+  gap: 8px;
+}
+
+.aoe-row {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  min-height: 58px;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+}
+
+.aoe-row > strong {
+  font-size: 13px;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.mini-truth-group {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 4px;
+  padding-inline: 4px;
+}
+
+/* 두 그룹 사이 구분선만 1px — 좌우 그룹의 버튼 폭이 항상 동일하도록 비대칭 여백 제거 */
+.mini-truth-group + .mini-truth-group {
+  border-left: 1px solid var(--hairline-strong);
+}
+
+.mini-truth {
+  min-height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--inset);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.mini-truth.truth {
+  border-color: rgba(59, 130, 246, 0.38);
+  color: #60a5fa;
+}
+
+.mini-truth.lie {
+  border-color: rgba(239, 68, 68, 0.38);
+  color: #f87171;
+}
+
+.mini-truth.truth.active {
+  border-color: #3b82f6;
+  color: #dbeafe;
+  background: rgba(37, 99, 235, 0.38);
+  box-shadow: inset 0 0 0 1px rgba(147, 197, 253, 0.3);
+}
+
+.mini-truth.lie.active {
+  border-color: #ef4444;
+  color: #fee2e2;
+  background: rgba(220, 38, 38, 0.36);
+  box-shadow: inset 0 0 0 1px rgba(252, 165, 165, 0.3);
 }
 
 .log-list {

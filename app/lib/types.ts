@@ -13,9 +13,12 @@ export type DebuffName =
   | "Beyond Death";
 
 export type TruthState = "truth" | "lie";
+export type EntryKind = "input" | "timeline";
+export type AssistMode = "personal" | "raid";
 
 export type DebuffEntry = {
   id: string;
+  kind: EntryKind;
   round: Round;
   debuff: DebuffName;
   duration: number | null;
@@ -24,6 +27,8 @@ export type DebuffEntry = {
   notify: boolean;
   source: "manual" | "auto";
   truthState: TruthState;
+  timelineSeconds: number | null;
+  actionText: string | null;
 };
 
 export type TimerLog = {
@@ -33,12 +38,12 @@ export type TimerLog = {
 
 export type TimerSettings = {
   alertLeadSeconds: number;
-  displayMode: "icon-label" | "icon-only";
+  assistMode: AssistMode;
   registrationMode: "confirm" | "instant";
-  alertSound: "beep" | "tts";
-  durationMode: "panel" | "split-select" | "split-grid";
+  alertSound: "off" | "tts";
+  vibrationEnabled: boolean;
   theme: "dark" | "light";
-  nameLanguage: "ko" | "en";
+  aoeLabelMode: "element" | "shape";
 };
 
 export type TimerState = {

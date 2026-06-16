@@ -12,7 +12,7 @@ type StatusPanelProps = {
   now: number;
   alertReady: boolean;
   alertLeadSeconds: number;
-  nameLanguage: TimerSettings["nameLanguage"];
+  alertSound: TimerSettings["alertSound"];
 };
 
 function StatusPanelImpl({
@@ -21,7 +21,7 @@ function StatusPanelImpl({
   now,
   alertReady,
   alertLeadSeconds,
-  nameLanguage,
+  alertSound,
 }: StatusPanelProps) {
   return (
     <section className="panel status-panel">
@@ -38,7 +38,7 @@ function StatusPanelImpl({
                   1000,
               )}{" "}
               · {roundLabels[nextEntry.round]}{" "}
-              {debuffLabel(nextEntry.debuff, nameLanguage)}
+              {debuffLabel(nextEntry.debuff, "ko")}
             </span>
           </>
         ) : (
@@ -50,7 +50,11 @@ function StatusPanelImpl({
       </div>
       <div className={alertReady ? "alert-ready ready" : "alert-ready"}>
         <BellRing size={16} aria-hidden="true" />
-        {alertReady ? `${alertLeadSeconds}초 전 알림` : "설정에서 알림 테스트"}
+        {alertSound === "off"
+          ? "소리 끔"
+          : alertReady
+            ? `${alertLeadSeconds}초 전 알림`
+            : "TTS 준비 중"}
       </div>
     </section>
   );

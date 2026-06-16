@@ -29,23 +29,26 @@ function SettingsModalImpl({
         </div>
         <div className="settings-body">
           <div className="setting-section">
-            <span className="setting-label">보기 모드</span>
-            <div className="segmented two-col" aria-label="디버프 보기 모드">
+            <span className="setting-label">사용 모드</span>
+            <div className="segmented two-col" aria-label="사용 모드">
               <button
-                className={`segment ${settings.displayMode === "icon-only" ? "active" : ""}`}
-                onClick={() => onUpdate({ displayMode: "icon-only" })}
+                className={`segment ${settings.assistMode === "personal" ? "active" : ""}`}
+                onClick={() => onUpdate({ assistMode: "personal" })}
                 type="button"
               >
-                아이콘만
+                개인용
               </button>
               <button
-                className={`segment ${settings.displayMode === "icon-label" ? "active" : ""}`}
-                onClick={() => onUpdate({ displayMode: "icon-label" })}
+                className={`segment ${settings.assistMode === "raid" ? "active" : ""}`}
+                onClick={() => onUpdate({ assistMode: "raid" })}
                 type="button"
               >
-                이름 같이
+                리딩용
               </button>
             </div>
+            <p className="setting-help">
+              리딩용은 8인 전체 처리 순서를 기준으로 물/번개 처리와 리딩자 폭탄을 함께 정리합니다.
+            </p>
           </div>
           <div className="setting-section">
             <span className="setting-label">등록 방식</span>
@@ -66,27 +69,8 @@ function SettingsModalImpl({
               </button>
             </div>
             <p className="setting-help">
-              선택 즉시는 디버프와 시간이 모두 정해지는 순간 다음 차수로 넘어갑니다.
+              선택 즉시는 필요한 입력이 모두 정해지는 순간 다음 차수로 넘어갑니다.
             </p>
-          </div>
-          <div className="setting-section">
-            <span className="setting-label">디버프 이름</span>
-            <div className="segmented two-col" aria-label="디버프 이름 표기">
-              <button
-                className={`segment ${settings.nameLanguage === "ko" ? "active" : ""}`}
-                onClick={() => onUpdate({ nameLanguage: "ko" })}
-                type="button"
-              >
-                한국어
-              </button>
-              <button
-                className={`segment ${settings.nameLanguage === "en" ? "active" : ""}`}
-                onClick={() => onUpdate({ nameLanguage: "en" })}
-                type="button"
-              >
-                English
-              </button>
-            </div>
           </div>
           <div className="setting-section">
             <span className="setting-label">테마</span>
@@ -108,57 +92,65 @@ function SettingsModalImpl({
             </div>
           </div>
           <div className="setting-section">
-            <span className="setting-label">시간 선택 방식</span>
-            <div className="segmented stack" aria-label="시간 선택 방식">
-              <button
-                className={`segment ${settings.durationMode === "panel" ? "active" : ""}`}
-                onClick={() => onUpdate({ durationMode: "panel" })}
-                type="button"
-              >
-                시간 영역 항상 표시
-              </button>
-              <button
-                className={`segment ${settings.durationMode === "split-select" ? "active" : ""}`}
-                onClick={() => onUpdate({ durationMode: "split-select" })}
-                type="button"
-              >
-                선택 시 칸 좌우 분리
-              </button>
-              <button
-                className={`segment ${settings.durationMode === "split-grid" ? "active" : ""}`}
-                onClick={() => onUpdate({ durationMode: "split-grid" })}
-                type="button"
-              >
-                디버프+시간 동시 선택
-              </button>
-            </div>
-            <p className="setting-help">
-              1·3차에서 지속시간을 고르는 방식입니다. 시간이 필요 없는 디버프는
-              영향받지 않습니다.
-            </p>
-          </div>
-          <div className="setting-section">
-            <span className="setting-label">알림 방식</span>
-            <div className="segmented two-col" aria-label="알림 출력 방식">
+            <span className="setting-label">소리 알림</span>
+            <div className="segmented two-col" aria-label="소리 알림 방식">
               <button
                 className={`segment ${settings.alertSound === "tts" ? "active" : ""}`}
                 onClick={() => onUpdate({ alertSound: "tts" })}
                 type="button"
               >
-                음성(TTS)
+                TTS
               </button>
               <button
-                className={`segment ${settings.alertSound === "beep" ? "active" : ""}`}
-                onClick={() => onUpdate({ alertSound: "beep" })}
+                className={`segment ${settings.alertSound === "off" ? "active" : ""}`}
+                onClick={() => onUpdate({ alertSound: "off" })}
                 type="button"
               >
-                비프음
+                끄기
               </button>
             </div>
             <p className="setting-help">
-              음성은 만료 시점에 처리법(예: &ldquo;산개&rdquo;)을 한국어로 읽어줍니다.
+              TTS는 처리 시점에 처리법(예: &ldquo;산개&rdquo;)을 읽어줍니다.
               기기/브라우저에 따라 한국어 음성이 없으면 기본 음성으로 재생됩니다.
             </p>
+          </div>
+          <div className="setting-section">
+            <span className="setting-label">진동</span>
+            <div className="segmented two-col" aria-label="진동 설정">
+              <button
+                className={`segment ${settings.vibrationEnabled ? "active" : ""}`}
+                onClick={() => onUpdate({ vibrationEnabled: true })}
+                type="button"
+              >
+                켜기
+              </button>
+              <button
+                className={`segment ${!settings.vibrationEnabled ? "active" : ""}`}
+                onClick={() => onUpdate({ vibrationEnabled: false })}
+                type="button"
+              >
+                끄기
+              </button>
+            </div>
+          </div>
+          <div className="setting-section">
+            <span className="setting-label">장판 표기</span>
+            <div className="segmented two-col" aria-label="장판 표기">
+              <button
+                className={`segment ${settings.aoeLabelMode === "element" ? "active" : ""}`}
+                onClick={() => onUpdate({ aoeLabelMode: "element" })}
+                type="button"
+              >
+                번개/얼음
+              </button>
+              <button
+                className={`segment ${settings.aoeLabelMode === "shape" ? "active" : ""}`}
+                onClick={() => onUpdate({ aoeLabelMode: "shape" })}
+                type="button"
+              >
+                직선/부채꼴
+              </button>
+            </div>
           </div>
           <label className="number-field">
             <span>몇 초 전에 알림</span>
@@ -184,7 +176,14 @@ function SettingsModalImpl({
               value={settings.alertLeadSeconds}
             />
           </label>
-          <button className="primary" onClick={onTestAlert} type="button">
+          <button
+            className="primary"
+            disabled={
+              settings.alertSound === "off" && !settings.vibrationEnabled
+            }
+            onClick={onTestAlert}
+            type="button"
+          >
             <Volume2 size={18} aria-hidden="true" />
             알림 테스트
           </button>

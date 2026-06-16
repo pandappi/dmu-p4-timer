@@ -1,13 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
+  debuffsByRound,
   type FinalDebuff,
   finalDebuffs,
   type WoundDebuff,
   woundDebuffs,
-  debuffsByRound,
   initialState,
   roundLabels,
   truthLabels,
@@ -15,12 +15,21 @@ import {
 import {
   getDuration,
   getNextRound,
-  getRound3Candidates,
   inferRound3Duration,
   inferRound4,
 } from "../lib/rules";
-import { EYE_DURATION_BY_ROUND, getEntryActionText } from "../lib/actions";
-import { clearState, loadState, saveState } from "../lib/storage";
+import {
+  getActionText,
+  getEntryActionText,
+  getFinalActionText,
+  getWavePairActionText,
+  getWaveTimelineSeconds,
+  getWaveTimingLabel,
+  isAccelerationBomb,
+  isWaterLightning,
+  TIMELINE_SECONDS,
+} from "../lib/actions";
+import { loadState, saveState } from "../lib/storage";
 import type {
   DebuffEntry,
   DebuffName,
@@ -38,15 +47,14 @@ export function useDebuffTimer() {
   const now = useNow();
   const [selectedDebuff, setSelectedDebuff] = useState<DebuffName | null>(null);
   const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
+  const [selectedBombDuration, setSelectedBombDuration] = useState<
+    number | "none" | null
+  >(null);
   const [selectedTruth, setSelectedTruth] = useState<TruthState | null>(null);
   const [selectedWound, setSelectedWound] = useState<WoundDebuff | null>(null);
   const [selectedFinal, setSelectedFinal] = useState<FinalDebuff | null>(null);
 
-  const { playBeep, speak, vibrate, unlock } = useAlertSound();
-
-  // split-grid 모드에서 디버프와 시간을 한 번에 고를 때, 디버프 변경에 따른
-  // 시간 동기화 effect가 방금 고른 시간을 덮어쓰지 않도록 잠시 보관한다.
-  const pendingDurationRef = useRef<number | null>(null);
+  const { speak, vibrate, unlock } = useAlertSound();
 
   useEffect(() => {
     const saved = loadState();
@@ -68,17 +76,38 @@ export function useDebuffTimer() {
     await unlock();
     if (state.settings.alertSound === "tts") {
       speak("테스트");
-    } else {
-      playBeep(false);
     }
-    vibrate(false);
+    if (state.settings.vibrationEnabled) vibrate(false);
     setState((current) => ({ ...current, alertReady: true }));
     addLog("알림 테스트 완료");
-  }, [addLog, playBeep, speak, state.settings.alertSound, unlock, vibrate]);
+  }, [
+    addLog,
+    speak,
+    state.settings.alertSound,
+    state.settings.vibrationEnabled,
+    unlock,
+    vibrate,
+  ]);
 
   const updateSettings = useCallback((settings: Partial<TimerSettings>) => {
     setState((current) => ({
       ...current,
+      startedAt:
+        settings.assistMode && settings.assistMode !== current.settings.assistMode
+          ? null
+          : current.startedAt,
+      entries:
+        settings.assistMode && settings.assistMode !== current.settings.assistMode
+          ? []
+          : current.entries,
+      selectedRound:
+        settings.assistMode && settings.assistMode !== current.settings.assistMode
+          ? 1
+          : current.selectedRound,
+      firedAlerts:
+        settings.assistMode && settings.assistMode !== current.settings.assistMode
+          ? {}
+          : current.firedAlerts,
       settings: {
         ...current.settings,
         ...settings,
@@ -100,31 +129,44 @@ export function useDebuffTimer() {
     );
   }, [state.entries]);
 
-  const round1ElementEntry = state.entries.find(
-    (entry) =>
-      entry.round === 1 &&
-      (entry.debuff === "Forked Lightning" ||
-        entry.debuff === "Compressed Water"),
+  const round1Entry = state.entries.find(
+    (entry) => entry.kind === "input" && entry.round === 1,
   );
-  const round1Entry = state.entries.find((entry) => entry.round === 1);
-  const round2Entry = state.entries.find((entry) => entry.round === 2);
+  const leaderRound1BombEntry = state.entries.find(
+    (entry) =>
+      entry.kind === "input" &&
+      entry.round === 1 &&
+      entry.debuff === "Acceleration Bomb",
+  );
+  const round2Entry = state.entries.find(
+    (entry) => entry.kind === "input" && entry.round === 2,
+  );
+  const round3Entry = state.entries.find(
+    (entry) => entry.kind === "input" && entry.round === 3,
+  );
+  const round4Entry = state.entries.find(
+    (entry) => entry.kind === "input" && entry.round === 4,
+  );
+  const round5WoundEntry = state.entries.find(
+    (entry) =>
+      entry.kind === "input" &&
+      entry.round === 5 &&
+      (entry.debuff === "Black Wound" || entry.debuff === "White Wound"),
+  );
+  const round5FinalEntry = state.entries.find(
+    (entry) =>
+      entry.kind === "input" &&
+      entry.round === 5 &&
+      (entry.debuff === "Allagan Field" || entry.debuff === "Beyond Death"),
+  );
   const visibleDebuffs =
-    state.selectedRound === 3
-      ? getRound3Candidates(round1Entry?.debuff)
-      : state.selectedRound === 5
-        ? []
-        : debuffsByRound[state.selectedRound];
-
-  const suggestedRound3Duration =
-    state.selectedRound === 3 &&
-    selectedDebuff &&
-    (selectedDebuff === "Forked Lightning" ||
-      selectedDebuff === "Compressed Water") &&
-    round1ElementEntry?.duration
-      ? inferRound3Duration(round1ElementEntry.duration)
-      : null;
-
+    state.selectedRound === 1 || state.selectedRound === 2
+      ? debuffsByRound[state.selectedRound]
+      : [];
   const suggestedRound4 = round2Entry ? inferRound4(round2Entry.debuff) : null;
+  const round1WasBomb = isAccelerationBomb(round1Entry?.debuff);
+  const round1WasWaterLightning = isWaterLightning(round1Entry?.debuff);
+  const isRaidMode = state.settings.assistMode === "raid";
 
   const activeEntries = useMemo(() => {
     return state.entries
@@ -141,9 +183,12 @@ export function useDebuffTimer() {
   const allRoundsComplete = useMemo(
     () =>
       ([1, 2, 3, 4, 5] as Round[]).every(
-        (round) => entriesByRound[round].length > 0,
+        (round) =>
+          round === 5
+            ? Boolean(round5WoundEntry && round5FinalEntry)
+            : entriesByRound[round].some((entry) => entry.kind === "input"),
       ),
-    [entriesByRound],
+    [entriesByRound, round5FinalEntry, round5WoundEntry],
   );
 
   useEffect(() => {
@@ -162,10 +207,8 @@ export function useDebuffTimer() {
       const action = getEntryActionText(entry, state.entries);
       if (state.settings.alertSound === "tts" && action) {
         speak(action);
-      } else {
-        playBeep(true);
       }
-      vibrate(true);
+      if (state.settings.vibrationEnabled) vibrate(true);
 
       setState((current) => ({
         ...current,
@@ -178,7 +221,6 @@ export function useDebuffTimer() {
     });
   }, [
     now,
-    playBeep,
     speak,
     vibrate,
     state.alertReady,
@@ -186,74 +228,320 @@ export function useDebuffTimer() {
     state.firedAlerts,
     state.settings.alertLeadSeconds,
     state.settings.alertSound,
+    state.settings.vibrationEnabled,
   ]);
 
   useEffect(() => {
-    pendingDurationRef.current = null;
     setSelectedDebuff(null);
     setSelectedDuration(null);
+    setSelectedBombDuration(null);
     setSelectedTruth(null);
     setSelectedWound(null);
     setSelectedFinal(null);
   }, [state.selectedRound]);
 
   useEffect(() => {
-    if (!selectedDebuff) {
-      setSelectedDuration(null);
-      return;
-    }
+    setSelectedDebuff(null);
+    setSelectedDuration(null);
+    setSelectedBombDuration(null);
+    setSelectedTruth(null);
+    setSelectedWound(null);
+    setSelectedFinal(null);
+  }, [state.settings.assistMode]);
 
-    // 디버프+시간을 동시에 고른 경우엔 그 시간을 그대로 사용한다.
-    if (pendingDurationRef.current !== null) {
-      setSelectedDuration(pendingDurationRef.current);
-      pendingDurationRef.current = null;
-      return;
-    }
-
-    const duration = getDuration(state.selectedRound, selectedDebuff);
-    setSelectedDuration(duration);
-  }, [selectedDebuff, state.selectedRound]);
-
-  const selectedEffectiveDuration = suggestedRound3Duration ?? selectedDuration;
+  const selectedEffectiveDuration = selectedDuration;
   const canRegister =
-    state.selectedRound === 5
-      ? Boolean(selectedTruth && selectedWound && selectedFinal)
-      : Boolean(selectedTruth && selectedDebuff) &&
-        selectedEffectiveDuration !== null;
+    isRaidMode && state.selectedRound === 1
+      ? Boolean(
+          selectedTruth && selectedDuration && selectedBombDuration !== null,
+        )
+      : state.selectedRound === 1
+        ? Boolean(selectedTruth && selectedDebuff && selectedDuration)
+      : state.selectedRound === 2
+        ? Boolean(selectedTruth && selectedDebuff)
+        : state.selectedRound === 3
+          ? isRaidMode
+            ? leaderRound1BombEntry
+              ? Boolean(selectedTruth && round1Entry?.duration)
+              : Boolean(selectedTruth && round1Entry?.duration && selectedDuration)
+            : round1WasBomb
+              ? Boolean(
+                  selectedTruth &&
+                    isWaterLightning(selectedDebuff) &&
+                    selectedDuration,
+                )
+              : round1WasWaterLightning
+                ? Boolean(selectedTruth && selectedDuration)
+                : false
+          : state.selectedRound === 4
+            ? Boolean(selectedTruth && suggestedRound4)
+            : Boolean(
+                selectedWound &&
+                  selectedFinal &&
+                  round1Entry &&
+                  round2Entry &&
+                  round3Entry &&
+                  round4Entry,
+              );
 
-  const buildEntry = useCallback(
+  const buildInputEntry = useCallback(
     ({
       round,
       debuff,
       duration,
-      appliedAt,
       source,
       truthState,
+      actionText,
     }: {
       round: Round;
       debuff: DebuffName;
       duration: number | null;
-      appliedAt: number;
       source: "manual" | "auto";
       truthState: TruthState;
+      actionText: string | null;
     }): DebuffEntry => {
-      const notify =
-        duration !== null &&
-        debuff !== "Black Wound" &&
-        debuff !== "White Wound";
       return {
         id: makeId(),
+        kind: "input",
         round,
         debuff,
         duration,
-        appliedAt,
-        expiresAt: notify && duration !== null ? appliedAt + duration * 1000 : null,
-        notify,
+        appliedAt: 0,
+        expiresAt: null,
+        notify: false,
         source,
         truthState,
+        timelineSeconds: null,
+        actionText,
       };
     },
     [],
+  );
+
+  const buildTimelineEntry = useCallback(
+    ({
+      round,
+      debuff,
+      truthState,
+      timelineSeconds,
+      startedAt,
+      actionText,
+      source = "auto",
+    }: {
+      round: Round;
+      debuff: DebuffName;
+      truthState: TruthState;
+      timelineSeconds: number;
+      startedAt: number;
+      actionText: string;
+      source?: "manual" | "auto";
+    }): DebuffEntry => ({
+      id: makeId(),
+      kind: "timeline",
+      round,
+      debuff,
+      duration: timelineSeconds,
+      appliedAt: startedAt,
+      expiresAt: startedAt + timelineSeconds * 1000,
+      notify: true,
+      source,
+      truthState,
+      timelineSeconds,
+      actionText,
+    }),
+    [],
+  );
+
+  const buildTimelineEntries = useCallback(
+    ({
+      assistMode,
+      inputs,
+      startedAt,
+    }: {
+      assistMode: TimerSettings["assistMode"];
+      inputs: DebuffEntry[];
+      startedAt: number;
+    }) => {
+      const r1 = inputs.find((entry) => entry.round === 1);
+      const r2 = inputs.find((entry) => entry.round === 2);
+      const r3 = inputs.find((entry) => entry.round === 3);
+      const r4 = inputs.find((entry) => entry.round === 4);
+      const wound = inputs.find(
+        (entry) =>
+          entry.round === 5 &&
+          (entry.debuff === "Black Wound" || entry.debuff === "White Wound"),
+      );
+      const final = inputs.find(
+        (entry) =>
+          entry.round === 5 &&
+          (entry.debuff === "Allagan Field" || entry.debuff === "Beyond Death"),
+      );
+
+      if (!r1 || !r2 || !r3 || !r4 || !wound || !final || !r1.duration) {
+        return [];
+      }
+
+      if (assistMode === "raid") {
+        const r1Bomb = inputs.find(
+          (entry) => entry.round === 1 && entry.debuff === "Acceleration Bomb",
+        );
+        const r3Bomb = inputs.find(
+          (entry) => entry.round === 3 && entry.debuff === "Acceleration Bomb",
+        );
+
+        const raidWaveEntries = [r1, r3]
+          .map((entry) => ({
+            entry,
+            seconds: getWaveTimelineSeconds(entry.duration),
+          }))
+          .filter((item) => item.seconds !== null)
+          .map(({ entry, seconds }) =>
+            buildTimelineEntry({
+              round: entry.round,
+              debuff: "Compressed Water",
+              truthState: entry.truthState,
+              timelineSeconds: seconds!,
+              startedAt,
+              actionText: getWavePairActionText(entry.truthState),
+            }),
+          );
+
+        const leaderBombEntries = [r1Bomb, r3Bomb]
+          .filter((entry): entry is DebuffEntry => Boolean(entry?.duration))
+          .map((entry) => {
+            const seconds = getWaveTimelineSeconds(entry.duration);
+            if (seconds === null) return null;
+            return buildTimelineEntry({
+              round: entry.round,
+              debuff: "Acceleration Bomb",
+              truthState: entry.truthState,
+              timelineSeconds: seconds,
+              startedAt,
+              actionText: getActionText("Acceleration Bomb", entry.truthState) ?? "",
+              source: "manual",
+            });
+          })
+          .filter((entry): entry is DebuffEntry => Boolean(entry));
+
+        const chaosEntries = [r2, r4].map((entry) =>
+          buildTimelineEntry({
+            round: entry.round,
+            debuff: entry.debuff,
+            truthState: entry.truthState,
+            timelineSeconds:
+              entry.debuff === "Entropy"
+                ? TIMELINE_SECONDS.entropy
+                : TIMELINE_SECONDS.dynamicFluid,
+            startedAt,
+            actionText: getActionText(entry.debuff, entry.truthState) ?? "",
+          }),
+        );
+
+        return [
+          buildTimelineEntry({
+            round: 5,
+            debuff: final.debuff,
+            truthState: "truth",
+            timelineSeconds: TIMELINE_SECONDS.final,
+            startedAt,
+            actionText: getFinalActionText(final.debuff, wound.debuff),
+            source: "manual",
+          }),
+          ...raidWaveEntries,
+          ...leaderBombEntries,
+          buildTimelineEntry({
+            round: 1,
+            debuff: "Cursed Shriek",
+            truthState: r1.truthState,
+            timelineSeconds: TIMELINE_SECONDS.round1Eye,
+            startedAt,
+            actionText: getActionText("Cursed Shriek", r1.truthState) ?? "",
+          }),
+          ...chaosEntries,
+          buildTimelineEntry({
+            round: 3,
+            debuff: "Cursed Shriek",
+            truthState: r3.truthState,
+            timelineSeconds: TIMELINE_SECONDS.round3Eye,
+            startedAt,
+            actionText: getActionText("Cursed Shriek", r3.truthState) ?? "",
+          }),
+        ].sort((a, b) => (a.timelineSeconds ?? 0) - (b.timelineSeconds ?? 0));
+      }
+
+      const round1WaveTime = getWaveTimelineSeconds(r1.duration);
+      const round3WaveTime = getWaveTimelineSeconds(r3.duration);
+      const waveEntries = [
+        {
+          round: 1 as const,
+          debuff: r1.debuff,
+          truthState: r1.truthState,
+          seconds: round1WaveTime,
+        },
+        {
+          round: 3 as const,
+          debuff: r3.debuff,
+          truthState: r3.truthState,
+          seconds: round3WaveTime,
+        },
+      ]
+        .filter((entry) => entry.seconds !== null)
+        .map((entry) =>
+          buildTimelineEntry({
+            round: entry.round,
+            debuff: entry.debuff,
+            truthState: entry.truthState,
+            timelineSeconds: entry.seconds!,
+            startedAt,
+            actionText: getActionText(entry.debuff, entry.truthState) ?? "",
+          }),
+        );
+
+      const chaosEntries = [r2, r4].map((entry) =>
+        buildTimelineEntry({
+          round: entry.round,
+          debuff: entry.debuff,
+          truthState: entry.truthState,
+          timelineSeconds:
+            entry.debuff === "Entropy"
+              ? TIMELINE_SECONDS.entropy
+              : TIMELINE_SECONDS.dynamicFluid,
+          startedAt,
+          actionText: getActionText(entry.debuff, entry.truthState) ?? "",
+        }),
+      );
+
+      return [
+        buildTimelineEntry({
+          round: 5,
+          debuff: final.debuff,
+          truthState: "truth",
+          timelineSeconds: TIMELINE_SECONDS.final,
+          startedAt,
+          actionText: getFinalActionText(final.debuff, wound.debuff),
+          source: "manual",
+        }),
+        ...waveEntries,
+        buildTimelineEntry({
+          round: 1,
+          debuff: "Cursed Shriek",
+          truthState: r1.truthState,
+          timelineSeconds: TIMELINE_SECONDS.round1Eye,
+          startedAt,
+          actionText: getActionText("Cursed Shriek", r1.truthState) ?? "",
+        }),
+        ...chaosEntries,
+        buildTimelineEntry({
+          round: 3,
+          debuff: "Cursed Shriek",
+          truthState: r3.truthState,
+          timelineSeconds: TIMELINE_SECONDS.round3Eye,
+          startedAt,
+          actionText: getActionText("Cursed Shriek", r3.truthState) ?? "",
+        }),
+      ].sort((a, b) => (a.timelineSeconds ?? 0) - (b.timelineSeconds ?? 0));
+    },
+    [buildTimelineEntry],
   );
 
   const registerEntry = useCallback(
@@ -275,51 +563,79 @@ export function useDebuffTimer() {
       const isRound5 = state.selectedRound === 5;
       const autoRound4 = state.selectedRound === 4 ? suggestedRound4 : null;
       const ready = isRound5
-        ? Boolean(truthState && wound && finalDebuff)
-        : Boolean(
-            truthState &&
-              ((debuff && duration !== null) ||
-                (autoRound4 && autoRound4.duration !== null)),
-          );
+        ? Boolean(
+            wound &&
+              finalDebuff &&
+              round1Entry &&
+              round2Entry &&
+              round3Entry &&
+              round4Entry,
+          )
+        : isRaidMode && state.selectedRound === 1
+          ? Boolean(
+              truthState && duration && selectedBombDuration !== null,
+            )
+          : state.selectedRound === 1
+            ? Boolean(truthState && debuff && duration)
+          : state.selectedRound === 2
+            ? Boolean(truthState && debuff)
+            : state.selectedRound === 3
+              ? isRaidMode
+                ? leaderRound1BombEntry
+                  ? Boolean(truthState && round1Entry?.duration)
+                  : Boolean(truthState && round1Entry?.duration && duration)
+                : round1WasBomb
+                  ? Boolean(truthState && isWaterLightning(debuff) && duration)
+                  : round1WasWaterLightning
+                    ? Boolean(truthState && duration)
+                    : false
+              : Boolean(truthState && autoRound4);
       if (!ready) return;
 
-      const appliedAt = Date.now();
-
       if (isRound5) {
-        if (!truthState || !wound || !finalDebuff) return;
+        if (!wound || !finalDebuff) return;
 
-        const woundEntry = buildEntry({
+        const woundEntry = buildInputEntry({
           round: 5,
           debuff: wound,
           duration: null,
-          appliedAt,
           source: "manual",
-          truthState,
+          truthState: "truth",
+          actionText: null,
         });
-        const finalEntry = buildEntry({
+        const finalEntry = buildInputEntry({
           round: 5,
           debuff: finalDebuff,
-          duration: 15,
-          appliedAt,
+          duration: TIMELINE_SECONDS.final,
           source: "manual",
-          truthState,
+          truthState: "truth",
+          actionText: getFinalActionText(finalDebuff, wound),
         });
 
         setState((current) => {
-          const nextEntries = [
-            ...current.entries.filter((entry) => entry.round !== 5),
+          const startedAt = Date.now();
+          const inputEntries = [
+            ...current.entries.filter(
+              (entry) => entry.kind === "input" && entry.round !== 5,
+            ),
             woundEntry,
             finalEntry,
           ].sort((a, b) => a.round - b.round);
+          const timelineEntries = buildTimelineEntries({
+            assistMode: state.settings.assistMode,
+            inputs: inputEntries,
+            startedAt,
+          });
 
           return {
             ...current,
-            startedAt: current.startedAt ?? Date.now(),
-            entries: nextEntries,
+            startedAt,
+            firedAlerts: {},
+            entries: [...inputEntries, ...timelineEntries],
             logs: [
               createLog(
-                `5차 ${truthLabels[truthState]} ${wound} + ${finalDebuff} 등록`,
-                current.startedAt,
+                `5차 ${wound} + ${finalDebuff} 기준 Assist 시작`,
+                startedAt,
               ),
               ...current.logs,
             ].slice(0, 8),
@@ -333,79 +649,174 @@ export function useDebuffTimer() {
         return;
       }
 
-      const entryDebuff = autoRound4?.debuff ?? debuff;
-      const entryDuration = autoRound4?.duration ?? duration;
+      if (isRaidMode && state.selectedRound === 1) {
+        if (!truthState || !duration || selectedBombDuration === null) return;
+
+        const waveEntry = buildInputEntry({
+          round: 1,
+          debuff: "Compressed Water",
+          duration,
+          source: "manual",
+          truthState,
+          actionText: getWavePairActionText(truthState),
+        });
+        const newEntries = [waveEntry];
+
+        if (selectedBombDuration !== "none") {
+          newEntries.push(
+            buildInputEntry({
+              round: 1,
+              debuff: "Acceleration Bomb",
+              duration: selectedBombDuration,
+              source: "manual",
+              truthState,
+              actionText: getActionText("Acceleration Bomb", truthState),
+            }),
+          );
+        }
+
+        setState((current) => {
+          const inputEntries = current.entries.filter(
+            (entry) =>
+              entry.kind === "input" && entry.round < current.selectedRound,
+          );
+          const nextEntries = [...inputEntries, ...newEntries];
+
+          return {
+            ...current,
+            startedAt: null,
+            firedAlerts: {},
+            entries: nextEntries.sort((a, b) => a.round - b.round),
+            selectedRound: getNextRound(current.selectedRound),
+            logs: [
+              createLog(
+                `${roundLabels[1]} ${truthLabels[truthState]} 리딩 입력`,
+                current.startedAt,
+              ),
+              ...current.logs,
+            ].slice(0, 8),
+          };
+        });
+        setSelectedDebuff(null);
+        setSelectedDuration(null);
+        setSelectedBombDuration(null);
+        setSelectedTruth(null);
+        setSelectedWound(null);
+        setSelectedFinal(null);
+        return;
+      }
+
+      if (isRaidMode && state.selectedRound === 3) {
+        if (!truthState || !round1Entry?.duration) return;
+        const inferredWaveDuration = inferRound3Duration(round1Entry.duration);
+        if (!inferredWaveDuration) return;
+        if (!leaderRound1BombEntry && !duration) return;
+
+        const newEntries = [
+          buildInputEntry({
+            round: 3,
+            debuff: "Compressed Water",
+            duration: inferredWaveDuration,
+            source: "auto",
+            truthState,
+            actionText: getWavePairActionText(truthState),
+          }),
+        ];
+
+        if (!leaderRound1BombEntry && duration) {
+          newEntries.push(
+            buildInputEntry({
+              round: 3,
+              debuff: "Acceleration Bomb",
+              duration,
+              source: "manual",
+              truthState,
+              actionText: getActionText("Acceleration Bomb", truthState),
+            }),
+          );
+        }
+
+        setState((current) => {
+          const inputEntries = current.entries.filter(
+            (entry) =>
+              entry.kind === "input" && entry.round < current.selectedRound,
+          );
+          const nextEntries = [...inputEntries, ...newEntries];
+
+          return {
+            ...current,
+            startedAt: null,
+            firedAlerts: {},
+            entries: nextEntries.sort((a, b) => a.round - b.round),
+            selectedRound: getNextRound(current.selectedRound),
+            logs: [
+              createLog(
+                `${roundLabels[3]} ${truthLabels[truthState]} 리딩 입력`,
+                current.startedAt,
+              ),
+              ...current.logs,
+            ].slice(0, 8),
+          };
+        });
+        setSelectedDebuff(null);
+        setSelectedDuration(null);
+        setSelectedBombDuration(null);
+        setSelectedTruth(null);
+        setSelectedWound(null);
+        setSelectedFinal(null);
+        return;
+      }
+
+      const entryDebuff =
+        state.selectedRound === 1
+          ? debuff
+          : state.selectedRound === 3
+            ? round1WasWaterLightning
+              ? "Acceleration Bomb"
+              : debuff
+            : autoRound4?.debuff ?? debuff;
+      const entryDuration =
+        state.selectedRound === 3
+          ? duration
+          : state.selectedRound === 2 && entryDebuff
+            ? getDuration(2, entryDebuff)
+            : autoRound4?.duration ?? duration;
       const entrySource = autoRound4 ? "auto" : source;
 
       if (!truthState || !entryDebuff || entryDuration === null) return;
 
-      const newEntry = buildEntry({
+      const actionText =
+        state.selectedRound === 1
+          ? getActionText(entryDebuff, truthState)
+          : state.selectedRound === 3
+            ? getActionText(entryDebuff, truthState)
+            : getActionText(entryDebuff, truthState);
+
+      const newEntry = buildInputEntry({
         round: state.selectedRound,
         debuff: entryDebuff,
         duration: entryDuration,
-        appliedAt,
         source: entrySource,
         truthState,
+        actionText,
       });
 
       setState((current) => {
-        const withoutRound = current.entries.filter(
+        const inputEntries = current.entries.filter(
           (entry) =>
-            entry.round !== current.selectedRound ||
-            entry.debuff !== entryDebuff,
+            entry.kind === "input" && entry.round < current.selectedRound,
         );
-        let nextEntries = [...withoutRound, newEntry];
-
-        if (current.selectedRound === 2) {
-          const inferred = inferRound4(entryDebuff);
-          if (inferred) {
-            const autoEntry = buildEntry({
-              round: 4,
-              debuff: inferred.debuff,
-              duration: inferred.duration,
-              appliedAt,
-              source: "auto",
-              truthState,
-            });
-            nextEntries = nextEntries.filter((entry) => entry.round !== 4);
-            nextEntries.push(autoEntry);
-          }
-        }
-
-        // 마안 자동 타이머: 1·3차는 선택 디버프와 별개로 Cursed Shriek 처리
-        // 타이머를 자동 등록한다(1차 60초 / 3차 69초, 그 차수의 진실/거짓 적용).
-        if (current.selectedRound === 1 || current.selectedRound === 3) {
-          nextEntries = nextEntries.filter(
-            (entry) =>
-              !(
-                entry.round === current.selectedRound &&
-                entry.debuff === "Cursed Shriek" &&
-                entry.source === "auto"
-              ),
-          );
-
-          // 본인이 마안을 직접 선택했다면 그 엔트리가 곧 마안 타이머이므로 중복 등록 생략.
-          if (entryDebuff !== "Cursed Shriek") {
-            const eyeEntry = buildEntry({
-              round: current.selectedRound,
-              debuff: "Cursed Shriek",
-              duration: EYE_DURATION_BY_ROUND[current.selectedRound],
-              appliedAt,
-              source: "auto",
-              truthState,
-            });
-            nextEntries.push(eyeEntry);
-          }
-        }
+        const nextEntries = [...inputEntries, newEntry];
 
         return {
           ...current,
-          startedAt: current.startedAt ?? Date.now(),
+          startedAt: null,
+          firedAlerts: {},
           entries: nextEntries.sort((a, b) => a.round - b.round),
           selectedRound: getNextRound(current.selectedRound),
           logs: [
             createLog(
-              `${roundLabels[newEntry.round]} ${truthLabels[truthState]} ${newEntry.debuff} 등록`,
+              `${roundLabels[newEntry.round]} ${truthLabels[truthState]} ${actionText ?? newEntry.debuff} 입력`,
               current.startedAt,
             ),
             ...current.logs,
@@ -419,64 +830,50 @@ export function useDebuffTimer() {
       setSelectedFinal(null);
     },
     [
-      buildEntry,
+      buildInputEntry,
+      buildTimelineEntries,
+      isRaidMode,
+      leaderRound1BombEntry,
+      round1Entry,
+      round2Entry,
+      round3Entry,
+      round4Entry,
       selectedDebuff,
+      selectedBombDuration,
       selectedEffectiveDuration,
       selectedFinal,
       selectedTruth,
       selectedWound,
       state.selectedRound,
+      state.settings.assistMode,
       suggestedRound4,
     ],
   );
 
   const reset = useCallback(() => {
-    setState({ ...initialState, settings: state.settings });
+    setState({ ...initialState, alertReady: true, settings: state.settings });
     setSelectedDebuff(null);
     setSelectedDuration(null);
+    setSelectedBombDuration(null);
     setSelectedTruth(null);
     setSelectedWound(null);
     setSelectedFinal(null);
-    clearState();
   }, [state.settings]);
-
-  const getReadyDuration = useCallback(
-    (debuff: DebuffName, duration: number | null) => {
-      const inferredDuration =
-        state.selectedRound === 3 &&
-        (debuff === "Forked Lightning" || debuff === "Compressed Water") &&
-        round1ElementEntry?.duration
-          ? inferRound3Duration(round1ElementEntry.duration)
-          : null;
-
-      return (
-        inferredDuration ?? duration ?? getDuration(state.selectedRound, debuff)
-      );
-    },
-    [round1ElementEntry?.duration, state.selectedRound],
-  );
 
   const handleTruthSelect = useCallback((truthState: TruthState) => {
     setSelectedTruth(truthState);
   }, []);
 
   const handleDebuffSelect = useCallback((debuff: DebuffName) => {
-    pendingDurationRef.current = null;
     setSelectedDebuff(debuff);
   }, []);
 
-  // split-grid 모드: 디버프와 시간을 한 번에 선택.
-  const handleDebuffWithDuration = useCallback(
-    (debuff: DebuffName, duration: number) => {
-      pendingDurationRef.current = duration;
-      setSelectedDebuff(debuff);
-      setSelectedDuration(duration);
-    },
-    [],
-  );
-
   const handleDurationSelect = useCallback((duration: number) => {
     setSelectedDuration(duration);
+  }, []);
+
+  const handleBombDurationSelect = useCallback((duration: number | "none") => {
+    setSelectedBombDuration(duration);
   }, []);
 
   const handleWoundSelect = useCallback((debuff: DebuffName) => {
@@ -488,15 +885,26 @@ export function useDebuffTimer() {
   }, []);
 
   useEffect(() => {
+    if (state.selectedRound !== 5 || state.startedAt) return;
+    if (!selectedWound || !selectedFinal || !canRegister) return;
+
+    registerEntry({
+      finalDebuff: selectedFinal,
+      wound: selectedWound,
+    });
+  }, [
+    canRegister,
+    registerEntry,
+    selectedFinal,
+    selectedWound,
+    state.selectedRound,
+    state.startedAt,
+  ]);
+
+  useEffect(() => {
     if (state.settings.registrationMode !== "instant") return;
 
     if (state.selectedRound === 5) {
-      if (!selectedTruth || !selectedWound || !selectedFinal) return;
-      registerEntry({
-        finalDebuff: selectedFinal,
-        truthState: selectedTruth,
-        wound: selectedWound,
-      });
       return;
     }
 
@@ -508,20 +916,62 @@ export function useDebuffTimer() {
       return;
     }
 
+    if (state.selectedRound === 1) {
+      if (isRaidMode) {
+        if (!selectedTruth || !selectedDuration || selectedBombDuration === null) {
+          return;
+        }
+        registerEntry({
+          duration: selectedDuration,
+          truthState: selectedTruth,
+        });
+        return;
+      }
+      if (!selectedTruth || !selectedDebuff || !selectedDuration) return;
+      registerEntry({
+        debuff: selectedDebuff,
+        duration: selectedDuration,
+        truthState: selectedTruth,
+      });
+      return;
+    }
+
+    if (state.selectedRound === 3) {
+      if (isRaidMode) {
+        if (!selectedTruth || !round1Entry?.duration) return;
+        if (!leaderRound1BombEntry && !selectedDuration) return;
+        registerEntry({
+          duration: selectedDuration,
+          truthState: selectedTruth,
+        });
+        return;
+      }
+      if (!selectedTruth || !round1Entry?.duration) return;
+      if (round1WasBomb && !isWaterLightning(selectedDebuff)) return;
+      if (!selectedDuration) return;
+      registerEntry({
+        debuff: round1WasWaterLightning ? "Acceleration Bomb" : selectedDebuff,
+        duration: selectedDuration,
+        truthState: selectedTruth,
+      });
+      return;
+    }
+
     if (!selectedTruth || !selectedDebuff) return;
-
-    const duration = getReadyDuration(selectedDebuff, selectedDuration);
-    if (duration === null) return;
-
     registerEntry({
       debuff: selectedDebuff,
-      duration,
-      source: suggestedRound3Duration ? "auto" : "manual",
+      duration: selectedDuration,
+      source: "manual",
       truthState: selectedTruth,
     });
   }, [
-    getReadyDuration,
+    isRaidMode,
+    leaderRound1BombEntry,
     registerEntry,
+    round1Entry?.duration,
+    round1WasBomb,
+    round1WasWaterLightning,
+    selectedBombDuration,
     selectedDebuff,
     selectedDuration,
     selectedFinal,
@@ -529,7 +979,6 @@ export function useDebuffTimer() {
     selectedWound,
     state.selectedRound,
     state.settings.registrationMode,
-    suggestedRound3Duration,
     suggestedRound4,
   ]);
 
@@ -542,19 +991,20 @@ export function useDebuffTimer() {
     entriesByRound,
     allRoundsComplete,
     visibleDebuffs,
-    round1ElementEntry,
-    suggestedRound3Duration,
+    round1Entry,
+    leaderRound1BombEntry,
     suggestedRound4,
     selectedDebuff,
     selectedDuration,
+    selectedBombDuration,
     selectedTruth,
     selectedWound,
     selectedFinal,
     canRegister,
     handleTruthSelect,
     handleDebuffSelect,
-    handleDebuffWithDuration,
     handleDurationSelect,
+    handleBombDurationSelect,
     handleWoundSelect,
     handleFinalSelect,
     registerEntry,

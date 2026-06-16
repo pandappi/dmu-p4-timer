@@ -16,20 +16,31 @@ function RoundStripImpl({
   entriesByRound,
   onSelectRound,
 }: RoundStripProps) {
+  const isRoundComplete = (round: Round) =>
+    entriesByRound[round].some((entry) => entry.kind === "input");
+  const canOpenRound = (round: Round) => {
+    for (let index = 1; index < round; index += 1) {
+      if (!isRoundComplete(index as Round)) return false;
+    }
+    return true;
+  };
+
   return (
     <section className="round-strip" aria-label="차수 선택">
       {ROUNDS.map((round) => {
+        const locked = !canOpenRound(round);
         const hasManual = entriesByRound[round].some(
-          (entry) => entry.source === "manual",
+          (entry) => entry.kind === "input" && entry.source === "manual",
         );
         const hasAuto = entriesByRound[round].some(
-          (entry) => entry.source === "auto",
+          (entry) => entry.kind === "input" && entry.source === "auto",
         );
         const className = [
           "round-tab",
           selectedRound === round ? "active" : "",
           hasManual ? "done" : "",
           hasAuto ? "auto" : "",
+          locked ? "locked" : "",
         ]
           .filter(Boolean)
           .join(" ");
@@ -37,6 +48,7 @@ function RoundStripImpl({
         return (
           <button
             className={className}
+            disabled={locked}
             key={round}
             onClick={() => onSelectRound(round)}
             type="button"

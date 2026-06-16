@@ -2,27 +2,28 @@ import { memo } from "react";
 
 import { debuffLabel } from "../lib/actions";
 import { debuffMeta, roundLabels, truthLabels } from "../lib/constants";
-import type { DebuffEntry, TimerSettings } from "../lib/types";
-import { formatClock } from "../lib/utils";
+import type { DebuffEntry } from "../lib/types";
+import { formatClock, formatDurationLabel } from "../lib/utils";
 
 type EntryListProps = {
   entries: DebuffEntry[];
   now: number;
-  nameLanguage: TimerSettings["nameLanguage"];
 };
 
-function EntryListImpl({ entries, now, nameLanguage }: EntryListProps) {
+function EntryListImpl({ entries, now }: EntryListProps) {
+  const inputEntries = entries.filter((entry) => entry.kind === "input");
+
   return (
     <section className="panel compact-list">
       <div className="panel-head">
-        <h3>등록됨</h3>
-        <span>{entries.length}</span>
+        <h3>입력됨</h3>
+        <span>{inputEntries.length}</span>
       </div>
       <div className="panel-body entry-list">
-        {entries.length === 0 ? (
-          <p className="hint">아직 등록된 디버프가 없습니다.</p>
+        {inputEntries.length === 0 ? (
+          <p className="hint">아직 입력된 조건이 없습니다.</p>
         ) : (
-          entries.map((entry) => {
+          inputEntries.map((entry) => {
             const remaining = entry.expiresAt
               ? (entry.expiresAt - now) / 1000
               : null;
@@ -34,14 +35,25 @@ function EntryListImpl({ entries, now, nameLanguage }: EntryListProps) {
                   src={debuffMeta[entry.debuff].icon}
                 />
                 <div>
-                  <strong>{debuffLabel(entry.debuff, nameLanguage)}</strong>
+                  <strong>
+                    {entry.actionText ?? debuffLabel(entry.debuff, "ko")}
+                  </strong>
                   <small>
-                    {roundLabels[entry.round]} · {truthLabels[entry.truthState]}{" "}
-                    · {entry.source === "auto" ? "자동" : "수동"}
+                    {[
+                      roundLabels[entry.round],
+                      entry.round === 5 ? null : truthLabels[entry.truthState],
+                      entry.source === "auto" ? "자동" : "수동",
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
                   </small>
                 </div>
                 <div className={entry.notify ? "entry-time" : "entry-time off"}>
-                  {remaining !== null ? formatClock(remaining) : "기록"}
+                  {remaining !== null
+                    ? formatClock(remaining)
+                    : entry.duration !== null
+                      ? formatDurationLabel(entry.duration)
+                      : "기록"}
                 </div>
               </div>
             );

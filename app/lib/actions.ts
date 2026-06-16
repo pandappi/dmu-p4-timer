@@ -16,15 +16,26 @@ const ACTION_TEXT_MAP: Partial<Record<DebuffName, Action>> = {
   "Forked Lightning": { truth: "산개", false: "쉐어" },
   "Acceleration Bomb": { truth: "가만히", false: "움직이기" },
   "Cursed Shriek": { truth: "뒤돌기", false: "마안보기" },
-  Entropy: { truth: "나가기", false: "가만히" },
-  "Dynamic Fluid": { truth: "가만히", false: "나가기" },
+  Entropy: { truth: "원형장판피하기", false: "도넛장판" },
+  "Dynamic Fluid": { truth: "도넛장판", false: "원형장판피하기" },
 };
 
-// 차수별 마안(Cursed Shriek) 자동 타이머 시간(초). 선택 디버프와 별개로 등록된다.
-export const EYE_DURATION_BY_ROUND: Record<1 | 3, number> = {
-  1: 60,
-  3: 69,
-};
+export const TIMELINE_SECONDS = {
+  final: 11,
+  fastWave: 20,
+  round1Eye: 29,
+  entropy: 36,
+  slowWave: 45,
+  round3Eye: 53,
+  dynamicFluid: 59,
+} as const;
+
+export const ASSIGNMENT_DURATIONS = {
+  round1FastWave: 51,
+  round1SlowWave: 76,
+  round3FastWave: 36,
+  round3SlowWave: 61,
+} as const;
 
 export const debuffKorean: Record<DebuffName, string> = {
   "Forked Lightning": "번개",
@@ -57,6 +68,12 @@ export function getActionText(
   return action ? action[truthKey(truthState)] : null;
 }
 
+export function getWavePairActionText(truthState: TruthState): string {
+  return truthState === "truth"
+    ? "물-쉐어 번개-산개"
+    : "물-산개 번개-쉐어";
+}
+
 // Black Wound = 죽은자의 상처 = 파랑, White Wound = 산자의 상처 = 보라.
 export function woundColorLabel(wound: DebuffName): string {
   return wound === "Black Wound" ? "파랑" : "보라";
@@ -85,6 +102,8 @@ export function getEntryActionText(
   entry: DebuffEntry,
   entries: DebuffEntry[],
 ): string | null {
+  if (entry.actionText) return entry.actionText;
+
   if (entry.debuff === "Allagan Field" || entry.debuff === "Beyond Death") {
     const wound = entries.find(
       (item) =>
@@ -99,4 +118,56 @@ export function getEntryActionText(
   }
 
   return getActionText(entry.debuff, entry.truthState);
+}
+
+export function getWaveTimingLabel(seconds: number | null): string {
+  if (
+    seconds === ASSIGNMENT_DURATIONS.round1FastWave ||
+    seconds === ASSIGNMENT_DURATIONS.round3FastWave ||
+    seconds === TIMELINE_SECONDS.fastWave
+  ) {
+    return "빠른";
+  }
+  if (
+    seconds === ASSIGNMENT_DURATIONS.round1SlowWave ||
+    seconds === ASSIGNMENT_DURATIONS.round3SlowWave ||
+    seconds === TIMELINE_SECONDS.slowWave
+  ) {
+    return "느린";
+  }
+  return "미정";
+}
+
+export function getOppositeWaveTime(seconds: number | null): number | null {
+  if (seconds === ASSIGNMENT_DURATIONS.round1FastWave) {
+    return ASSIGNMENT_DURATIONS.round3SlowWave;
+  }
+  if (seconds === ASSIGNMENT_DURATIONS.round1SlowWave) {
+    return ASSIGNMENT_DURATIONS.round3FastWave;
+  }
+  return null;
+}
+
+export function getWaveTimelineSeconds(duration: number | null): number | null {
+  if (
+    duration === ASSIGNMENT_DURATIONS.round1FastWave ||
+    duration === ASSIGNMENT_DURATIONS.round3FastWave
+  ) {
+    return TIMELINE_SECONDS.fastWave;
+  }
+  if (
+    duration === ASSIGNMENT_DURATIONS.round1SlowWave ||
+    duration === ASSIGNMENT_DURATIONS.round3SlowWave
+  ) {
+    return TIMELINE_SECONDS.slowWave;
+  }
+  return null;
+}
+
+export function isWaterLightning(debuff: DebuffName | null | undefined) {
+  return debuff === "Compressed Water" || debuff === "Forked Lightning";
+}
+
+export function isAccelerationBomb(debuff: DebuffName | null | undefined) {
+  return debuff === "Acceleration Bomb";
 }

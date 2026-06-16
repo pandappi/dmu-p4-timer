@@ -2,17 +2,16 @@ import { ListChecks } from "lucide-react";
 import { memo, useMemo } from "react";
 
 import { debuffLabel, getEntryActionText } from "../lib/actions";
-import { roundLabels } from "../lib/constants";
-import type { DebuffEntry, TimerSettings } from "../lib/types";
+import { roundLabels, truthLabels } from "../lib/constants";
+import type { DebuffEntry } from "../lib/types";
 import { formatClock } from "../lib/utils";
 
 type TimelineProps = {
   entries: DebuffEntry[];
   now: number;
-  nameLanguage: TimerSettings["nameLanguage"];
 };
 
-function TimelineImpl({ entries, now, nameLanguage }: TimelineProps) {
+function TimelineImpl({ entries, now }: TimelineProps) {
   // 시간이 있는(알림 대상) 엔트리만 만료 시각 순으로 나열한다.
   const ordered = useMemo(
     () =>
@@ -52,10 +51,11 @@ function TimelineImpl({ entries, now, nameLanguage }: TimelineProps) {
               <div className="timeline-time">{formatClock(remaining)}</div>
               <div className="timeline-copy">
                 <strong className="timeline-action">{action ?? "—"}</strong>
-                <small>
+                <span className={`timeline-meta ${entry.truthState}`}>
                   {roundLabels[entry.round]} ·{" "}
-                  {debuffLabel(entry.debuff, nameLanguage)}
-                </small>
+                  {debuffLabel(entry.debuff, "ko")} ·{" "}
+                  {truthLabels[entry.truthState]}
+                </span>
               </div>
             </div>
           );
