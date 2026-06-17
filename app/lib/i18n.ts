@@ -132,12 +132,12 @@ const TEXT: Record<Language, Record<TextKey, string>> = {
     skip: "스킵",
     doNotSkip: "스킵 안함",
     fifthDebuffSkipHelp:
-      "5차 디버프 정보를 입력하지 않고 4차 디버프 입력 직후 타이머를 시작합니다. 5차 디버프 처리는 직접 확인해야 합니다. 4차 디버프 정보는 실제 부여 시간보다 빠르게 입력할 수 있으니, 여유 시간을 짧게 잡아 테스트하며 맞춰보세요.",
+      "5차 디버프 정보를 입력하지 않고 4차 디버프 입력 직후 타이머를 시작합니다. 5차 디버프 처리는 직접 확인해야 합니다. 4차 디버프 정보는 실제 부여 시간보다 빠르게 입력할 수 있으니, 입력/알림 여유 시간을 짧게 잡아 테스트하며 맞춰보세요.",
     inputAlertBuffer: "입력/알림 여유 시간",
     inputAlertHelp:
       "인게임 디버프 확인 후 어시스트에 입력하기까지 걸리는 시간과 미리 알려줄 시간을 합한 값입니다. 시점 영상을 보며 자신에게 맞게 -10~15초 사이로 조정해보세요.",
-    round5FalseCheck: "무의 범람(파랑/보라)의 거짓 여부도 함께 확인해야 합니다.",
-    timelineFalseCheck: "보스 파랑/보라 거짓 여부 확인 필요",
+    round5FalseCheck: "5차 디버프 부여 후 무의 범람(파랑/보라)의 거짓 여부도 확인해야 합니다.",
+    timelineFalseCheck: "무의 범람(파랑/보라) 거짓 여부 확인 필요",
     testAlert: "알림 테스트",
     alertTestHelp:
       "소리가 나지 않으면 브라우저가 자동 재생을 막은 상태일 수 있습니다. 설정에서 알림 테스트를 한 번 눌러 TTS 재생을 확인해주세요.",
@@ -209,12 +209,12 @@ const TEXT: Record<Language, Record<TextKey, string>> = {
     skip: "Skip",
     doNotSkip: "Do not skip",
     fifthDebuffSkipHelp:
-      "Starts the timer right after Round 4 input without entering Round 5 debuff info. Handle the Round 5 debuff yourself. Round 4 can be entered before the actual debuff appears, so test with a shorter buffer and tune it to your POV.",
+      "Starts the timer right after Round 4 input without entering Round 5 debuff info. Handle the Round 5 debuff yourself. Round 4 can be entered before the actual debuff appears, so test with a shorter Input/Alert Buffer and tune it to your POV.",
     inputAlertBuffer: "Input/Alert Buffer",
     inputAlertHelp:
       "Use the combined seconds for reading your in-game debuff, entering it here, and how early you want the assist to call it. Tune -10 to 15s while reviewing POV footage.",
-    round5FalseCheck: "Also check whether the Flood of Nothingness blue/purple side is False.",
-    timelineFalseCheck: "Check boss blue/purple false state",
+    round5FalseCheck: "After Round 5 debuffs are assigned, also check whether Flood of Naught (blue/purple) is False.",
+    timelineFalseCheck: "Check Flood of Naught (blue/purple) false state",
     testAlert: "Test Alert",
     alertTestHelp:
       "If TTS does not play, the browser may be blocking autoplay. Open Settings and press Test Alert once to unlock speech playback.",

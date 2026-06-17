@@ -49,6 +49,7 @@ export function TimerApp() {
               entries={timer.state.entries}
               language={language}
               now={timer.now}
+              showRound5FalseWarning={!timer.state.settings.fifthDebuffSkip}
             />
             <AoeGuide
               labelMode={timer.state.settings.aoeLabelMode}

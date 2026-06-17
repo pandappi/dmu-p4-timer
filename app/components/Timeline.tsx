@@ -17,6 +17,7 @@ type TimelineProps = {
   entries: DebuffEntry[];
   language: Language;
   now: number;
+  showRound5FalseWarning: boolean;
 };
 
 function TimelineImpl({
@@ -24,6 +25,7 @@ function TimelineImpl({
   entries,
   language,
   now,
+  showRound5FalseWarning,
 }: TimelineProps) {
   const activeItemRef = useRef<HTMLDivElement | null>(null);
 
@@ -54,7 +56,9 @@ function TimelineImpl({
       <div className="panel-head">
         <div className="timeline-heading">
           <h3>{text(language, "timeline")}</h3>
-          <span>{text(language, "timelineFalseCheck")}</span>
+          {showRound5FalseWarning ? (
+            <span>{text(language, "timelineFalseCheck")}</span>
+          ) : null}
         </div>
         <ListChecks size={18} aria-hidden="true" />
       </div>
