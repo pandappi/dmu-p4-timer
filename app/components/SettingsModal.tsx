@@ -32,7 +32,7 @@ function SettingsModalImpl({
       defaultSettings.alertLeadSeconds,
     );
     onUpdate({
-      alertLeadSeconds: Math.min(15, Math.max(0, nextValue)),
+      alertLeadSeconds: Math.min(15, Math.max(-10, nextValue)),
     });
   };
   const updateTtsVolume = (value: string) => {
@@ -276,7 +276,7 @@ function SettingsModalImpl({
             <input
               inputMode="numeric"
               max={15}
-              min={0}
+              min={-10}
               onChange={(event) => updateAlertLeadSeconds(event.target.value)}
               type="number"
               value={settings.alertLeadSeconds}

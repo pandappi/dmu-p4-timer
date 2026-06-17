@@ -265,7 +265,7 @@ export function useDebuffTimer() {
 
     const leadSeconds = Math.min(
       15,
-      Math.max(0, state.settings.alertLeadSeconds),
+      Math.max(-10, state.settings.alertLeadSeconds),
     );
 
     // 이번 tick에 알림 조건을 만족하는 항목을 모은다.

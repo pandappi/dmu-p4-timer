@@ -52,7 +52,10 @@ function TimelineImpl({
   return (
     <section className="panel timeline-panel" id="timeline-panel">
       <div className="panel-head">
-        <h3>{text(language, "timeline")}</h3>
+        <div className="timeline-heading">
+          <h3>{text(language, "timeline")}</h3>
+          <span>{text(language, "timelineFalseCheck")}</span>
+        </div>
         <ListChecks size={18} aria-hidden="true" />
       </div>
       <div className={`panel-body timeline-list ${compact ? "compact" : ""}`}>

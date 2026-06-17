@@ -434,6 +434,9 @@ function WorkspaceImpl({
             <div className="auto-box compact">
               <p>{text(language, "round5Same")}</p>
             </div>
+            <div className="auto-box compact caution-box">
+              <p>{text(language, "round5FalseCheck")}</p>
+            </div>
             <div className="button-grid">
               {woundDebuffs.map((debuff) => (
                 <DebuffButton

@@ -256,6 +256,21 @@ button {
   color: var(--warn);
 }
 
+.timeline-heading {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.timeline-heading span {
+  color: var(--warn);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
 .timeline-list {
   display: grid;
   gap: 4px;
@@ -1118,6 +1133,15 @@ button {
 .auto-box.compact {
   align-content: center;
   padding: 10px;
+}
+
+.auto-box.caution-box {
+  border-color: rgba(239, 68, 68, 0.38);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.auto-box.caution-box p {
+  color: var(--danger-text);
 }
 
 .auto-box p {
