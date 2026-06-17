@@ -8,6 +8,7 @@ const ROUNDS: Round[] = [1, 2, 3, 4, 5];
 type RoundStripProps = {
   selectedRound: Round;
   entriesByRound: Record<Round, DebuffEntry[]>;
+  fifthDebuffSkip: boolean;
   language: Language;
   onSelectRound: (round: Round) => void;
 };
@@ -15,12 +16,14 @@ type RoundStripProps = {
 function RoundStripImpl({
   selectedRound,
   entriesByRound,
+  fifthDebuffSkip,
   language,
   onSelectRound,
 }: RoundStripProps) {
   const isRoundComplete = (round: Round) =>
     entriesByRound[round].some((entry) => entry.kind === "input");
   const canOpenRound = (round: Round) => {
+    if (fifthDebuffSkip && round === 5) return false;
     for (let index = 1; index < round; index += 1) {
       if (!isRoundComplete(index as Round)) return false;
     }
@@ -30,6 +33,7 @@ function RoundStripImpl({
   return (
     <section className="round-strip" aria-label="차수 선택">
       {ROUNDS.map((round) => {
+        const skipped = fifthDebuffSkip && round === 5;
         const locked = !canOpenRound(round);
         const hasManual = entriesByRound[round].some(
           (entry) => entry.kind === "input" && entry.source === "manual",
@@ -42,6 +46,7 @@ function RoundStripImpl({
           selectedRound === round ? "active" : "",
           hasManual ? "done" : "",
           hasAuto ? "auto" : "",
+          skipped ? "skipped" : "",
           locked ? "locked" : "",
         ]
           .filter(Boolean)

@@ -40,6 +40,51 @@ import { createLog, makeId } from "../lib/utils";
 import { useAlertSound } from "./useAlertSound";
 import { useNow } from "./useNow";
 
+type TimelineProfile = {
+  fastWave: number;
+  round1Eye: number;
+  entropy: number;
+  slowWave: number;
+  round3Eye: number;
+  dynamicFluid: number;
+};
+
+const FOURTH_INPUT_TIMELINE: Record<"Entropy" | "Dynamic Fluid", TimelineProfile> = {
+  Entropy: {
+    fastWave: 29.15,
+    round1Eye: 38.15,
+    entropy: 45,
+    slowWave: 54.1,
+    round3Eye: 62.05,
+    dynamicFluid: 67.8,
+  },
+  "Dynamic Fluid": {
+    fastWave: 30.25,
+    round1Eye: 39.3,
+    entropy: 46.15,
+    slowWave: 55.25,
+    round3Eye: 63.25,
+    dynamicFluid: 69,
+  },
+};
+
+function getFourthInputTimelineProfile(round4Debuff: DebuffName): TimelineProfile {
+  return round4Debuff === "Dynamic Fluid"
+    ? FOURTH_INPUT_TIMELINE["Dynamic Fluid"]
+    : FOURTH_INPUT_TIMELINE.Entropy;
+}
+
+function getTimelineSecondsForWave(
+  duration: number | null,
+  profile: TimelineProfile | null,
+) {
+  if (!profile) return getWaveTimelineSeconds(duration);
+  const defaultSeconds = getWaveTimelineSeconds(duration);
+  if (defaultSeconds === TIMELINE_SECONDS.fastWave) return profile.fastWave;
+  if (defaultSeconds === TIMELINE_SECONDS.slowWave) return profile.slowWave;
+  return null;
+}
+
 export function useDebuffTimer() {
   const [state, setState] = useState<TimerState>(initialState);
   const now = useNow();
@@ -97,19 +142,31 @@ export function useDebuffTimer() {
     setState((current) => ({
       ...current,
       startedAt:
-        settings.assistMode && settings.assistMode !== current.settings.assistMode
+        (settings.assistMode &&
+          settings.assistMode !== current.settings.assistMode) ||
+        (settings.fifthDebuffSkip !== undefined &&
+          settings.fifthDebuffSkip !== current.settings.fifthDebuffSkip)
           ? null
           : current.startedAt,
       entries:
-        settings.assistMode && settings.assistMode !== current.settings.assistMode
+        (settings.assistMode &&
+          settings.assistMode !== current.settings.assistMode) ||
+        (settings.fifthDebuffSkip !== undefined &&
+          settings.fifthDebuffSkip !== current.settings.fifthDebuffSkip)
           ? []
           : current.entries,
       selectedRound:
-        settings.assistMode && settings.assistMode !== current.settings.assistMode
+        (settings.assistMode &&
+          settings.assistMode !== current.settings.assistMode) ||
+        (settings.fifthDebuffSkip !== undefined &&
+          settings.fifthDebuffSkip !== current.settings.fifthDebuffSkip)
           ? 1
           : current.selectedRound,
       firedAlerts:
-        settings.assistMode && settings.assistMode !== current.settings.assistMode
+        (settings.assistMode &&
+          settings.assistMode !== current.settings.assistMode) ||
+        (settings.fifthDebuffSkip !== undefined &&
+          settings.fifthDebuffSkip !== current.settings.fifthDebuffSkip)
           ? {}
           : current.firedAlerts,
       settings: {
@@ -186,13 +243,21 @@ export function useDebuffTimer() {
 
   const allRoundsComplete = useMemo(
     () =>
-      ([1, 2, 3, 4, 5] as Round[]).every(
+      (state.settings.fifthDebuffSkip
+        ? ([1, 2, 3, 4] as Round[])
+        : ([1, 2, 3, 4, 5] as Round[])
+      ).every(
         (round) =>
           round === 5
             ? Boolean(round5WoundEntry && round5FinalEntry)
             : entriesByRound[round].some((entry) => entry.kind === "input"),
       ),
-    [entriesByRound, round5FinalEntry, round5WoundEntry],
+    [
+      entriesByRound,
+      round5FinalEntry,
+      round5WoundEntry,
+      state.settings.fifthDebuffSkip,
+    ],
   );
 
   useEffect(() => {
@@ -286,7 +351,7 @@ export function useDebuffTimer() {
     setSelectedTruth(null);
     setSelectedWound(null);
     setSelectedFinal(null);
-  }, [state.settings.assistMode]);
+  }, [state.settings.assistMode, state.settings.fifthDebuffSkip]);
 
   const selectedEffectiveDuration = selectedDuration;
   const canRegister =
@@ -395,10 +460,12 @@ export function useDebuffTimer() {
     ({
       assistMode,
       inputs,
+      skipFifthDebuff,
       startedAt,
     }: {
       assistMode: TimerSettings["assistMode"];
       inputs: DebuffEntry[];
+      skipFifthDebuff: boolean;
       startedAt: number;
     }) => {
       const r1 = inputs.find((entry) => entry.round === 1);
@@ -416,9 +483,37 @@ export function useDebuffTimer() {
           (entry.debuff === "Allagan Field" || entry.debuff === "Beyond Death"),
       );
 
-      if (!r1 || !r2 || !r3 || !r4 || !wound || !final || !r1.duration) {
+      if (!r1 || !r2 || !r3 || !r4 || !r1.duration) {
         return [];
       }
+
+      if (!skipFifthDebuff && (!wound || !final)) {
+        return [];
+      }
+
+      const skipProfile = skipFifthDebuff
+        ? getFourthInputTimelineProfile(r4.debuff)
+        : null;
+      const round1EyeSeconds =
+        skipProfile?.round1Eye ?? TIMELINE_SECONDS.round1Eye;
+      const round3EyeSeconds =
+        skipProfile?.round3Eye ?? TIMELINE_SECONDS.round3Eye;
+      const getChaosSeconds = (debuff: DebuffName) =>
+        debuff === "Entropy"
+          ? (skipProfile?.entropy ?? TIMELINE_SECONDS.entropy)
+          : (skipProfile?.dynamicFluid ?? TIMELINE_SECONDS.dynamicFluid);
+      const finalEntry =
+        !skipFifthDebuff && final && wound
+          ? buildTimelineEntry({
+              round: 5,
+              debuff: final.debuff,
+              truthState: "truth",
+              timelineSeconds: TIMELINE_SECONDS.final,
+              startedAt,
+              actionText: getFinalActionText(final.debuff, wound.debuff),
+              source: "manual",
+            })
+          : null;
 
       if (assistMode === "raid") {
         const r1Bomb = inputs.find(
@@ -431,7 +526,7 @@ export function useDebuffTimer() {
         const raidWaveEntries = [r1, r3]
           .map((entry) => ({
             entry,
-            seconds: getWaveTimelineSeconds(entry.duration),
+            seconds: getTimelineSecondsForWave(entry.duration, skipProfile),
           }))
           .filter((item) => item.seconds !== null)
           .map(({ entry, seconds }) =>
@@ -448,13 +543,16 @@ export function useDebuffTimer() {
         const leaderBombEntries = [r1Bomb, r3Bomb]
           .filter((entry): entry is DebuffEntry => Boolean(entry?.duration))
           .map((entry) => {
-            const seconds = getWaveTimelineSeconds(entry.duration);
-            if (seconds === null) return null;
+            const timelineSeconds = getTimelineSecondsForWave(
+              entry.duration,
+              skipProfile,
+            );
+            if (timelineSeconds === null) return null;
             return buildTimelineEntry({
               round: entry.round,
               debuff: "Acceleration Bomb",
               truthState: entry.truthState,
-              timelineSeconds: seconds,
+              timelineSeconds,
               startedAt,
               actionText: getActionText("Acceleration Bomb", entry.truthState) ?? "",
               source: "manual",
@@ -467,32 +565,21 @@ export function useDebuffTimer() {
             round: entry.round,
             debuff: entry.debuff,
             truthState: entry.truthState,
-            timelineSeconds:
-              entry.debuff === "Entropy"
-                ? TIMELINE_SECONDS.entropy
-                : TIMELINE_SECONDS.dynamicFluid,
+            timelineSeconds: getChaosSeconds(entry.debuff),
             startedAt,
             actionText: getActionText(entry.debuff, entry.truthState) ?? "",
           }),
         );
 
         return [
-          buildTimelineEntry({
-            round: 5,
-            debuff: final.debuff,
-            truthState: "truth",
-            timelineSeconds: TIMELINE_SECONDS.final,
-            startedAt,
-            actionText: getFinalActionText(final.debuff, wound.debuff),
-            source: "manual",
-          }),
+          finalEntry,
           ...raidWaveEntries,
           ...leaderBombEntries,
           buildTimelineEntry({
             round: 1,
             debuff: "Cursed Shriek",
             truthState: r1.truthState,
-            timelineSeconds: TIMELINE_SECONDS.round1Eye,
+            timelineSeconds: round1EyeSeconds,
             startedAt,
             actionText: getActionText("Cursed Shriek", r1.truthState) ?? "",
           }),
@@ -501,15 +588,23 @@ export function useDebuffTimer() {
             round: 3,
             debuff: "Cursed Shriek",
             truthState: r3.truthState,
-            timelineSeconds: TIMELINE_SECONDS.round3Eye,
+            timelineSeconds: round3EyeSeconds,
             startedAt,
             actionText: getActionText("Cursed Shriek", r3.truthState) ?? "",
           }),
-        ].sort((a, b) => (a.timelineSeconds ?? 0) - (b.timelineSeconds ?? 0));
+        ]
+          .filter((entry): entry is DebuffEntry => Boolean(entry))
+          .sort((a, b) => (a.timelineSeconds ?? 0) - (b.timelineSeconds ?? 0));
       }
 
-      const round1WaveTime = getWaveTimelineSeconds(r1.duration);
-      const round3WaveTime = getWaveTimelineSeconds(r3.duration);
+      const round1WaveTime = getTimelineSecondsForWave(
+        r1.duration,
+        skipProfile,
+      );
+      const round3WaveTime = getTimelineSecondsForWave(
+        r3.duration,
+        skipProfile,
+      );
       const waveEntries = [
         {
           round: 1 as const,
@@ -541,31 +636,20 @@ export function useDebuffTimer() {
           round: entry.round,
           debuff: entry.debuff,
           truthState: entry.truthState,
-          timelineSeconds:
-            entry.debuff === "Entropy"
-              ? TIMELINE_SECONDS.entropy
-              : TIMELINE_SECONDS.dynamicFluid,
+          timelineSeconds: getChaosSeconds(entry.debuff),
           startedAt,
           actionText: getActionText(entry.debuff, entry.truthState) ?? "",
         }),
       );
 
       return [
-        buildTimelineEntry({
-          round: 5,
-          debuff: final.debuff,
-          truthState: "truth",
-          timelineSeconds: TIMELINE_SECONDS.final,
-          startedAt,
-          actionText: getFinalActionText(final.debuff, wound.debuff),
-          source: "manual",
-        }),
+        finalEntry,
         ...waveEntries,
         buildTimelineEntry({
           round: 1,
           debuff: "Cursed Shriek",
           truthState: r1.truthState,
-          timelineSeconds: TIMELINE_SECONDS.round1Eye,
+          timelineSeconds: round1EyeSeconds,
           startedAt,
           actionText: getActionText("Cursed Shriek", r1.truthState) ?? "",
         }),
@@ -574,11 +658,13 @@ export function useDebuffTimer() {
           round: 3,
           debuff: "Cursed Shriek",
           truthState: r3.truthState,
-          timelineSeconds: TIMELINE_SECONDS.round3Eye,
+          timelineSeconds: round3EyeSeconds,
           startedAt,
           actionText: getActionText("Cursed Shriek", r3.truthState) ?? "",
         }),
-      ].sort((a, b) => (a.timelineSeconds ?? 0) - (b.timelineSeconds ?? 0));
+      ]
+        .filter((entry): entry is DebuffEntry => Boolean(entry))
+        .sort((a, b) => (a.timelineSeconds ?? 0) - (b.timelineSeconds ?? 0));
     },
     [buildTimelineEntry],
   );
@@ -664,6 +750,7 @@ export function useDebuffTimer() {
           const timelineEntries = buildTimelineEntries({
             assistMode: state.settings.assistMode,
             inputs: inputEntries,
+            skipFifthDebuff: false,
             startedAt,
           });
 
@@ -855,13 +942,43 @@ export function useDebuffTimer() {
           (entry) =>
             entry.kind === "input" && entry.round < current.selectedRound,
         );
-        const nextEntries = [...inputEntries, newEntry];
+        const nextEntries = [...inputEntries, newEntry].sort(
+          (a, b) => a.round - b.round,
+        );
+        const startsAfterRound4 =
+          current.settings.fifthDebuffSkip && newEntry.round === 4;
+
+        if (startsAfterRound4) {
+          const startedAt = Date.now();
+          const timelineEntries = buildTimelineEntries({
+            assistMode: current.settings.assistMode,
+            inputs: nextEntries,
+            skipFifthDebuff: true,
+            startedAt,
+          });
+
+          return {
+            ...current,
+            startedAt,
+            firedAlerts: {},
+            entries: [...nextEntries, ...timelineEntries],
+            logs: [
+              createLog(
+                language === "ko"
+                  ? "4차 입력 기준 Assist 시작"
+                  : "Assist started from Round 4 input",
+                startedAt,
+              ),
+              ...current.logs,
+            ].slice(0, 8),
+          };
+        }
 
         return {
           ...current,
           startedAt: null,
           firedAlerts: {},
-          entries: nextEntries.sort((a, b) => a.round - b.round),
+          entries: nextEntries,
           selectedRound: getNextRound(current.selectedRound),
           logs: [
             createLog(
@@ -937,6 +1054,7 @@ export function useDebuffTimer() {
   }, []);
 
   useEffect(() => {
+    if (state.settings.fifthDebuffSkip) return;
     if (state.selectedRound !== 5 || state.startedAt) return;
     if (!selectedWound || !selectedFinal || !canRegister) return;
 
@@ -950,6 +1068,7 @@ export function useDebuffTimer() {
     selectedFinal,
     selectedWound,
     state.selectedRound,
+    state.settings.fifthDebuffSkip,
     state.startedAt,
   ]);
 

@@ -534,6 +534,11 @@ button {
   border-color: rgba(245, 158, 11, 0.45);
 }
 
+.round-tab.skipped {
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+}
+
 .round-tab.locked {
   opacity: 0.38;
 }

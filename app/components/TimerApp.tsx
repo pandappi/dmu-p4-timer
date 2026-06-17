@@ -62,6 +62,7 @@ export function TimerApp() {
             <RoundStrip
               selectedRound={timer.state.selectedRound}
               entriesByRound={timer.entriesByRound}
+              fifthDebuffSkip={timer.state.settings.fifthDebuffSkip}
               language={language}
               onSelectRound={timer.setSelectedRound}
             />

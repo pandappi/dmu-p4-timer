@@ -49,6 +49,7 @@ export type TimerSettings = {
   aoeLabelMode: "element" | "shape";
   partyChatCopy: boolean;
   partySoundCopy: boolean;
+  fifthDebuffSkip: boolean;
 };
 
 export type TimerState = {

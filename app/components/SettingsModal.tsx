@@ -141,6 +141,33 @@ function SettingsModalImpl({
             </p>
           </div>
           <div className="setting-section">
+            <span className="setting-label">
+              {text(language, "fifthDebuffSkip")}
+            </span>
+            <div
+              className="segmented two-col"
+              aria-label={text(language, "fifthDebuffSkip")}
+            >
+              <button
+                className={`segment ${!settings.fifthDebuffSkip ? "active" : ""}`}
+                onClick={() => onUpdate({ fifthDebuffSkip: false })}
+                type="button"
+              >
+                {text(language, "doNotSkip")}
+              </button>
+              <button
+                className={`segment ${settings.fifthDebuffSkip ? "active" : ""}`}
+                onClick={() => onUpdate({ fifthDebuffSkip: true })}
+                type="button"
+              >
+                {text(language, "skip")}
+              </button>
+            </div>
+            {settings.fifthDebuffSkip ? (
+              <p className="setting-help">{text(language, "fifthDebuffSkipHelp")}</p>
+            ) : null}
+          </div>
+          <div className="setting-section">
             <span className="setting-label">{text(language, "theme")}</span>
             <div className="segmented two-col" aria-label={text(language, "theme")}>
               <button

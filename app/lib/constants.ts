@@ -20,6 +20,7 @@ export const defaultSettings: TimerSettings = {
   aoeLabelMode: "element",
   partyChatCopy: false,
   partySoundCopy: false,
+  fifthDebuffSkip: false,
 };
 
 export const roundLabels: Record<Round, string> = {
