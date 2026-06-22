@@ -94,6 +94,8 @@ export function useDebuffTimer() {
     number | "none" | null
   >(null);
   const [selectedTruth, setSelectedTruth] = useState<TruthState | null>(null);
+  const [round2PresetTruth, setRound2PresetTruth] =
+    useState<TruthState | null>(null);
   const [selectedWound, setSelectedWound] = useState<WoundDebuff | null>(null);
   const [selectedFinal, setSelectedFinal] = useState<FinalDebuff | null>(null);
 
@@ -339,19 +341,30 @@ export function useDebuffTimer() {
     setSelectedDebuff(null);
     setSelectedDuration(null);
     setSelectedBombDuration(null);
-    setSelectedTruth(null);
+    setSelectedTruth(
+      state.selectedRound === 2 && state.settings.round2TruthPreselect
+        ? round2PresetTruth
+        : null,
+    );
     setSelectedWound(null);
     setSelectedFinal(null);
-  }, [state.selectedRound]);
+  }, [state.selectedRound, state.settings.round2TruthPreselect]);
 
   useEffect(() => {
     setSelectedDebuff(null);
     setSelectedDuration(null);
     setSelectedBombDuration(null);
     setSelectedTruth(null);
+    setRound2PresetTruth(null);
     setSelectedWound(null);
     setSelectedFinal(null);
   }, [state.settings.assistMode, state.settings.fifthDebuffSkip]);
+
+  useEffect(() => {
+    if (!state.settings.round2TruthPreselect) {
+      setRound2PresetTruth(null);
+    }
+  }, [state.settings.round2TruthPreselect]);
 
   const selectedEffectiveDuration = selectedDuration;
   const canRegister =
@@ -773,6 +786,7 @@ export function useDebuffTimer() {
         setSelectedDebuff(null);
         setSelectedDuration(null);
         setSelectedTruth(null);
+        setRound2PresetTruth(null);
         setSelectedWound(null);
         setSelectedFinal(null);
         return;
@@ -994,6 +1008,9 @@ export function useDebuffTimer() {
       setSelectedDebuff(null);
       setSelectedDuration(null);
       setSelectedTruth(null);
+      if (state.selectedRound >= 2) {
+        setRound2PresetTruth(null);
+      }
       setSelectedWound(null);
       setSelectedFinal(null);
     },
@@ -1025,12 +1042,17 @@ export function useDebuffTimer() {
     setSelectedDuration(null);
     setSelectedBombDuration(null);
     setSelectedTruth(null);
+    setRound2PresetTruth(null);
     setSelectedWound(null);
     setSelectedFinal(null);
   }, [state.settings]);
 
   const handleTruthSelect = useCallback((truthState: TruthState) => {
     setSelectedTruth(truthState);
+  }, []);
+
+  const handleRound2PresetTruthSelect = useCallback((truthState: TruthState) => {
+    setRound2PresetTruth(truthState);
   }, []);
 
   const handleDebuffSelect = useCallback((debuff: DebuffName) => {
@@ -1169,10 +1191,12 @@ export function useDebuffTimer() {
     selectedDuration,
     selectedBombDuration,
     selectedTruth,
+    round2PresetTruth,
     selectedWound,
     selectedFinal,
     canRegister,
     handleTruthSelect,
+    handleRound2PresetTruthSelect,
     handleDebuffSelect,
     handleDurationSelect,
     handleBombDurationSelect,

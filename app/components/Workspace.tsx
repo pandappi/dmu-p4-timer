@@ -44,6 +44,8 @@ type WorkspaceProps = {
   selectedDebuff: DebuffName | null;
   selectedDuration: number | null;
   selectedBombDuration: number | "none" | null;
+  round2TruthPreselect: boolean;
+  round2PresetTruth: TruthState | null;
   selectedWound: DebuffName | null;
   selectedFinal: DebuffName | null;
   canRegister: boolean;
@@ -51,6 +53,7 @@ type WorkspaceProps = {
   onDebuffSelect: (debuff: DebuffName) => void;
   onDurationSelect: (duration: number) => void;
   onBombDurationSelect: (duration: number | "none") => void;
+  onRound2PresetTruthSelect: (truth: TruthState) => void;
   onWoundSelect: (debuff: DebuffName) => void;
   onFinalSelect: (debuff: DebuffName) => void;
   onRegister: (options: { source: "manual" | "auto" }) => void;
@@ -202,6 +205,38 @@ function DurationButtons({
   );
 }
 
+function Round2PresetTruthPanel({
+  language,
+  selected,
+  onSelect,
+}: {
+  language: Language;
+  selected: TruthState | null;
+  onSelect: (truth: TruthState) => void;
+}) {
+  return (
+    <div className="preset-truth-panel">
+      <span>{text(language, "round2TruthPreselectPrompt")}</span>
+      <div className="truth-toggle preset" aria-label={text(language, "round2TruthPreselectPrompt")}>
+        <button
+          className={`truth-button truth ${selected === "truth" ? "active" : ""}`}
+          onClick={() => onSelect("truth")}
+          type="button"
+        >
+          {truthLabel(language, "truth")}
+        </button>
+        <button
+          className={`truth-button lie ${selected === "lie" ? "active" : ""}`}
+          onClick={() => onSelect("lie")}
+          type="button"
+        >
+          {truthLabel(language, "lie")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function WorkspaceImpl({
   selectedRound,
   assistMode,
@@ -215,6 +250,8 @@ function WorkspaceImpl({
   selectedDebuff,
   selectedDuration,
   selectedBombDuration,
+  round2TruthPreselect,
+  round2PresetTruth,
   selectedWound,
   selectedFinal,
   canRegister,
@@ -222,6 +259,7 @@ function WorkspaceImpl({
   onDebuffSelect,
   onDurationSelect,
   onBombDurationSelect,
+  onRound2PresetTruthSelect,
   onWoundSelect,
   onFinalSelect,
   onRegister,
@@ -323,6 +361,13 @@ function WorkspaceImpl({
                 </button>
               </div>
             </div>
+            {round2TruthPreselect ? (
+              <Round2PresetTruthPanel
+                language={language}
+                onSelect={onRound2PresetTruthSelect}
+                selected={round2PresetTruth}
+              />
+            ) : null}
           </>
         ) : selectedRound === 1 ? (
           <>
@@ -355,6 +400,13 @@ function WorkspaceImpl({
             <div className="auto-box">
               <p>{text(language, "eyeCommon")}</p>
             </div>
+            {round2TruthPreselect ? (
+              <Round2PresetTruthPanel
+                language={language}
+                onSelect={onRound2PresetTruthSelect}
+                selected={round2PresetTruth}
+              />
+            ) : null}
           </>
         ) : isRaidMode && selectedRound === 3 ? (
           <>

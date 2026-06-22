@@ -142,6 +142,33 @@ function SettingsModalImpl({
           </div>
           <div className="setting-section">
             <span className="setting-label">
+              {text(language, "round2TruthPreselect")}
+            </span>
+            <div
+              className="segmented two-col"
+              aria-label={text(language, "round2TruthPreselect")}
+            >
+              <button
+                className={`segment ${!settings.round2TruthPreselect ? "active" : ""}`}
+                onClick={() => onUpdate({ round2TruthPreselect: false })}
+                type="button"
+              >
+                {text(language, "off")}
+              </button>
+              <button
+                className={`segment ${settings.round2TruthPreselect ? "active" : ""}`}
+                onClick={() => onUpdate({ round2TruthPreselect: true })}
+                type="button"
+              >
+                {text(language, "on")}
+              </button>
+            </div>
+            <p className="setting-help">
+              {text(language, "round2TruthPreselectHelp")}
+            </p>
+          </div>
+          <div className="setting-section">
+            <span className="setting-label">
               {text(language, "fifthDebuffSkip")}
             </span>
             <div

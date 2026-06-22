@@ -14,7 +14,7 @@ type Action = { truth: string; false: string };
 const ACTION_TEXT_MAP: Partial<Record<DebuffName, Action>> = {
   "Compressed Water": { truth: "쉐어", false: "산개" },
   "Forked Lightning": { truth: "산개", false: "쉐어" },
-  "Acceleration Bomb": { truth: "가만히", false: "움직이기" },
+  "Acceleration Bomb": { truth: "멈추기", false: "움직이기" },
   "Cursed Shriek": { truth: "뒤돌기", false: "마안보기" },
   Entropy: { truth: "원형장판피하기", false: "도넛장판" },
   "Dynamic Fluid": { truth: "도넛장판", false: "원형장판피하기" },

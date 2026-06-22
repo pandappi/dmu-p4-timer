@@ -14,6 +14,27 @@ type OneLineSummaryProps = {
   partySoundCopy: boolean;
 };
 
+function getSharedBombCall(language: Language, entries: DebuffEntry[]) {
+  const round1 = entries.find(
+    (entry) => entry.kind === "input" && entry.round === 1,
+  );
+  const round3 = entries.find(
+    (entry) => entry.kind === "input" && entry.round === 3,
+  );
+
+  if (!round1 || !round3 || round1.truthState !== round3.truthState) {
+    return null;
+  }
+
+  if (language === "ko") {
+    return round1.truthState === "truth"
+      ? "가속도 모두 멈추기"
+      : "가속도 모두 움직이기";
+  }
+
+  return round1.truthState === "truth" ? "All Bombs Stop" : "All Bombs Move";
+}
+
 function OneLineSummaryImpl({
   entries,
   language,
@@ -31,15 +52,23 @@ function OneLineSummaryImpl({
     [entries],
   );
 
-  const summary = useMemo(() => {
-    return timelineEntries
+  const sharedBombCall = useMemo(
+    () => getSharedBombCall(language, entries),
+    [entries, language],
+  );
+
+  const summaryParts = useMemo(() => {
+    const actions = timelineEntries
       .filter((entry) => entry.round !== 5)
       .filter((entry) => entry.debuff !== "Acceleration Bomb")
       .map((entry) => getEntryActionText(entry, entries))
       .filter((action): action is string => Boolean(action))
-      .map((action) => copyCallText(language, action))
-      .join(" / ");
-  }, [entries, language, timelineEntries]);
+      .map((action) => copyCallText(language, action));
+
+    return sharedBombCall ? [sharedBombCall, ...actions] : actions;
+  }, [entries, language, sharedBombCall, timelineEntries]);
+
+  const summary = summaryParts.join(" / ");
 
   const personalMechanics = useMemo(() => {
     const finalAction = timelineEntries
@@ -93,7 +122,25 @@ function OneLineSummaryImpl({
       </div>
       <div className="panel-body one-line-body">
         <p className="one-line-text">
-          {copyText || text(language, "noSummary")}
+          {copyText ? (
+            <>
+              {partyChatCopy ? "/p " : ""}
+              {sharedBombCall ? (
+                <span className="one-line-highlight">{sharedBombCall}</span>
+              ) : null}
+              {summaryParts
+                .slice(sharedBombCall ? 1 : 0)
+                .map((part, index) => (
+                  <span key={`${part}-${index}`}>
+                    {sharedBombCall || index > 0 ? " / " : ""}
+                    {part}
+                  </span>
+                ))}
+              {partySoundCopy ? " <se.1>" : ""}
+            </>
+          ) : (
+            text(language, "noSummary")
+          )}
         </p>
         {copied ? (
           <span className="copy-feedback">{text(language, "copied")}</span>

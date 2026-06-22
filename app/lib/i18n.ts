@@ -57,6 +57,9 @@ type TextKey =
   | "skip"
   | "doNotSkip"
   | "fifthDebuffSkipHelp"
+  | "round2TruthPreselect"
+  | "round2TruthPreselectHelp"
+  | "round2TruthPreselectPrompt"
   | "inputAlertBuffer"
   | "inputAlertHelp"
   | "round5FalseCheck"
@@ -133,6 +136,10 @@ const TEXT: Record<Language, Record<TextKey, string>> = {
     doNotSkip: "스킵 안함",
     fifthDebuffSkipHelp:
       "5차 디버프 정보를 입력하지 않고 4차 디버프 입력 직후 타이머를 시작합니다. 5차 디버프 처리는 직접 확인해야 합니다. 4차 디버프 정보는 실제 부여 시간보다 빠르게 입력할 수 있으니, 입력/알림 여유 시간을 짧게 잡아 테스트하며 맞춰보세요.",
+    round2TruthPreselect: "2차 진실/거짓 미리 선택",
+    round2TruthPreselectHelp:
+      "1차 입력 중 2차 진실/거짓을 미리 선택해두면, 2차 입력 화면에 자동으로 채워집니다. 미리 선택하지 않아도 1차 입력은 그대로 진행됩니다.",
+    round2TruthPreselectPrompt: "2차 진실/거짓 미리 선택",
     inputAlertBuffer: "입력/알림 여유 시간",
     inputAlertHelp:
       "인게임 디버프 확인 후 어시스트에 입력하기까지 걸리는 시간과 미리 알려줄 시간을 합한 값입니다. 시점 영상을 보며 자신에게 맞게 -10~15초 사이로 조정해보세요.",
@@ -210,6 +217,10 @@ const TEXT: Record<Language, Record<TextKey, string>> = {
     doNotSkip: "Do not skip",
     fifthDebuffSkipHelp:
       "Starts the timer right after Round 4 input without entering Round 5 debuff info. Handle the Round 5 debuff yourself. Round 4 can be entered before the actual debuff appears, so test with a shorter Input/Alert Buffer and tune it to your POV.",
+    round2TruthPreselect: "Preselect Round 2 True/False",
+    round2TruthPreselectHelp:
+      "While entering Round 1, you can preselect Round 2 True/False. It will be filled automatically on the Round 2 input screen. Round 1 can still advance without it.",
+    round2TruthPreselectPrompt: "Preselect Round 2 True/False",
     inputAlertBuffer: "Input/Alert Buffer",
     inputAlertHelp:
       "Use the combined seconds for reading your in-game debuff, entering it here, and how early you want the assist to call it. Tune -10 to 15s while reviewing POV footage.",
@@ -237,7 +248,7 @@ const TEXT: Record<Language, Record<TextKey, string>> = {
 const ACTION_TEXT_EN: Record<string, string> = {
   "쉐어": "Stack",
   "산개": "Spread",
-  "가만히": "Stop",
+  "멈추기": "Stop",
   "움직이기": "Move",
   "뒤돌기": "Look away",
   "마안보기": "Face gaze",

@@ -21,6 +21,7 @@ export const defaultSettings: TimerSettings = {
   partyChatCopy: false,
   partySoundCopy: false,
   fifthDebuffSkip: false,
+  round2TruthPreselect: false,
 };
 
 export const roundLabels: Record<Round, string> = {

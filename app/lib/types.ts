@@ -50,6 +50,7 @@ export type TimerSettings = {
   partyChatCopy: boolean;
   partySoundCopy: boolean;
   fifthDebuffSkip: boolean;
+  round2TruthPreselect: boolean;
 };
 
 export type TimerState = {

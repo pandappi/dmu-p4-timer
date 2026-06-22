@@ -81,6 +81,8 @@ export function TimerApp() {
               selectedDebuff={timer.selectedDebuff}
               selectedDuration={timer.selectedDuration}
               selectedBombDuration={timer.selectedBombDuration}
+              round2TruthPreselect={timer.state.settings.round2TruthPreselect}
+              round2PresetTruth={timer.round2PresetTruth}
               selectedWound={timer.selectedWound}
               selectedFinal={timer.selectedFinal}
               canRegister={timer.canRegister}
@@ -88,6 +90,7 @@ export function TimerApp() {
               onDebuffSelect={timer.handleDebuffSelect}
               onDurationSelect={timer.handleDurationSelect}
               onBombDurationSelect={timer.handleBombDurationSelect}
+              onRound2PresetTruthSelect={timer.handleRound2PresetTruthSelect}
               onWoundSelect={timer.handleWoundSelect}
               onFinalSelect={timer.handleFinalSelect}
               onRegister={timer.registerEntry}
