@@ -29,6 +29,8 @@
   --autobox-bg: rgba(245, 158, 11, 0.1);
   --autobox-border: rgba(245, 158, 11, 0.35);
   --autobox-text: #fed7aa;
+  --water-action-text: #7dd3fc;
+  --lightning-action-text: #fde047;
   --app-width: 560px;
 }
 
@@ -56,6 +58,8 @@
   --autobox-bg: rgba(245, 158, 11, 0.16);
   --autobox-border: rgba(217, 119, 6, 0.5);
   --autobox-text: #92400e;
+  --water-action-text: #0369a1;
+  --lightning-action-text: #a16207;
 }
 
 * {
@@ -349,6 +353,18 @@ button {
   color: #fecdd3;
   text-shadow: 0 0 10px rgba(251, 113, 133, 0.75);
   animation: bomb-flash 0.36s steps(2, end) infinite;
+}
+
+.wave-action-effect {
+  font-weight: 950;
+}
+
+.wave-action-effect.water {
+  color: var(--water-action-text);
+}
+
+.wave-action-effect.lightning {
+  color: var(--lightning-action-text);
 }
 
 .timeline-item.bomb-warning .timeline-time {

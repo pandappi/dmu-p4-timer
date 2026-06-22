@@ -11,6 +11,7 @@ import {
 } from "../lib/i18n";
 import type { DebuffEntry, Language } from "../lib/types";
 import { formatClock } from "../lib/utils";
+import { HighlightedActionText } from "./HighlightedActionText";
 
 type TimelineProps = {
   compact?: boolean;
@@ -88,7 +89,9 @@ function TimelineImpl({
             >
               <div className="timeline-time">{formatClock(remaining)}</div>
               <div className="timeline-copy">
-                <strong className="timeline-action">{displayAction ?? "—"}</strong>
+                <strong className="timeline-action">
+                  <HighlightedActionText text={displayAction} />
+                </strong>
                 <span className={`timeline-meta ${entry.truthState}`}>
                   {roundLabel(language, entry.round)} ·{" "}
                   {debuffDisplayName(language, entry.debuff)} ·{" "}

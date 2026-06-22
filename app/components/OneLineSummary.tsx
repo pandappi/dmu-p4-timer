@@ -6,6 +6,7 @@ import { memo, useMemo, useState } from "react";
 import { getEntryActionText } from "../lib/actions";
 import { copyCallText, text } from "../lib/i18n";
 import type { DebuffEntry, Language } from "../lib/types";
+import { HighlightedActionText } from "./HighlightedActionText";
 
 type OneLineSummaryProps = {
   entries: DebuffEntry[];
@@ -133,7 +134,7 @@ function OneLineSummaryImpl({
                 .map((part, index) => (
                   <span key={`${part}-${index}`}>
                     {sharedBombCall || index > 0 ? " / " : ""}
-                    {part}
+                    <HighlightedActionText text={part} />
                   </span>
                 ))}
               {partySoundCopy ? " <se.1>" : ""}
